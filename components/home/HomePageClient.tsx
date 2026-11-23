@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { Header } from "./Header"
 import { HeroSection } from "./HeroSection"
 import { BeforeAfterSlider } from "./BeforeAfterSlider"
@@ -46,7 +46,15 @@ export function HomePageClient() {
         </section>
 
         {/* 4. Centerpiece: Interactive 6-Step Online Booking Desk */}
-        <BookingStudio />
+        <Suspense
+          fallback={
+            <div className="py-24 bg-[#0F1210] flex items-center justify-center text-[#A8A39A]">
+              بارگذاری میز نوبت‌دهی آنلاین...
+            </div>
+          }
+        >
+          <BookingStudio />
+        </Suspense>
 
         {/* 5. About the Master Barber & Salon Story */}
         <AboutSection />

@@ -8,7 +8,7 @@ import { BeforeAfterSlider } from "./BeforeAfterSlider"
 import { BookingStudio } from "./BookingStudio"
 import { AboutSection } from "./AboutSection"
 import { GallerySection } from "./GallerySection"
-import { ReviewsSection } from "./ReviewsSection"
+import { ReviewSystemSection } from "./ReviewSystemSection"
 import { LocationContactSection } from "./LocationContactSection"
 import { FaqSection } from "./FaqSection"
 import { Footer } from "./Footer"
@@ -65,7 +65,7 @@ export function HomePageClient() {
         <GallerySection />
 
         {/* 8. Customer Testimonials & Reviews */}
-        <ReviewsSection />
+        <ReviewSystemSection />
 
         {/* 9. Location, Daily Hours (10:00-23:00) & Contact */}
         <LocationContactSection />

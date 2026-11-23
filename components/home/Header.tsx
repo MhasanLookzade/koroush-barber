@@ -114,7 +114,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2.5 rounded-xl bg-[#171B19] text-[#F7F4EE] border border-[#2B332F] hover:bg-[#242A27] transition-colors"
+            className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#171B19] text-[#F7F4EE] border border-[#2B332F] hover:bg-[#242A27] transition-colors"
             aria-expanded={mobileMenuOpen}
             aria-label="باز کردن منوی موبایل"
           >

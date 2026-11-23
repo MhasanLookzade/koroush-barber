@@ -33,7 +33,7 @@ export function MobileFloatingBar() {
   return (
     <aside
       aria-label="دسترسی سریع به رزرو نوبت"
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 p-3 bg-[#0F1210]/95 backdrop-blur-xl border-t border-[#262D29] shadow-[0_-10px_30px_rgba(0,0,0,0.7)] animate-slideUp"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] bg-[#0F1210]/95 backdrop-blur-xl border-t border-[#262D29] shadow-[0_-10px_30px_rgba(0,0,0,0.7)] animate-slideUp"
     >
       <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
         <div className="flex flex-col text-right pr-1">

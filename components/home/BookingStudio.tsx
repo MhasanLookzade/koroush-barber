@@ -22,6 +22,7 @@ import {
 } from "lucide-react"
 import { formatToman, toPersianDigits, getJalaliDate, getTehranDateString, PERSIAN_WEEKDAYS } from "@/lib/jalali"
 import { HOMEPAGE_SERVICES, ServiceItem } from "./ServicesSection"
+import { JalaliBirthDatePicker } from "@/components/booking/JalaliBirthDatePicker"
 
 interface Slot {
   time: string
@@ -67,6 +68,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
+  const [customerBirthDate, setCustomerBirthDate] = useState<string | null>(null)
   const [otpCode, setOtpCode] = useState("")
   const [isOtpSent, setIsOtpSent] = useState(false)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false)
@@ -227,6 +229,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         customerName,
         customerPhone,
         customerEmail,
+        customerBirthDate,
       }),
     })
     const holdData = await holdRes.json()
@@ -481,14 +484,14 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                           onClick={() => setSelectedDateStr(d.dateStr)}
                           className={`p-3 sm:p-4 rounded-2xl border-2 text-center transition-all cursor-pointer ${
                             isSelected
-                              ? "bg-[#1E2522] border-[#C8A96B] shadow-md scale-105"
+                              ? "bg-[#1E2522] border-[#C8A96B] ring-2 ring-[#C8A96B]/50 ring-offset-2 ring-offset-[#141715] shadow-md"
                               : "bg-[#101311] border-[#202522] hover:border-[#38413C]"
                           }`}
                         >
                           <div className={`text-xs font-medium ${isSelected ? "text-[#E4C88E]" : "text-[#8C8477]"}`}>
                             {d.dayName}
                           </div>
-                          <div className="text-xl sm:text-2xl font-extrabold text-[#F7F4EE] my-1">
+                          <div className="text-xl sm:text-2xl font-extrabold text-[#F7F4EE] my-1 font-mono">
                             {d.dayNumber}
                           </div>
                           <div className="text-[11px] text-[#A89E90]">{d.monthName}</div>
@@ -503,49 +506,65 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   </div>
                 </div>
 
-                {/* Slot Capacity Status */}
-                {isClosed ? (
-                  <div className="p-8 rounded-2xl bg-[#1C1616] border border-red-500/30 text-center space-y-2">
-                    <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
-                    <h4 className="text-lg font-bold text-red-200">سالن در این تاریخ تعطیل است</h4>
-                    <p className="text-sm text-red-300/80">{closedReason || "تعطیلی تقویمی یا استراحت سالن"}</p>
-                  </div>
-                ) : slotsLoading ? (
-                  <div className="py-12 flex flex-col items-center justify-center gap-3 text-[#A89E90]">
-                    <RefreshCw className="w-7 h-7 text-[#C8A96B] animate-spin" />
-                    <span className="text-sm">در حال بررسی ظرفیت ساعت‌های خالی...</span>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <span className="text-xs font-semibold text-[#C5BDB2]">ساعت دلخواه خود را لمس کنید:</span>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                      {availableSlots.map((slot) => {
-                        const isSelected = selectedTime === slot.time
-                        const isAvailable = slot.isAvailable
-                        return (
-                          <button
-                            key={slot.time}
-                            type="button"
-                            disabled={!isAvailable}
-                            onClick={() => setSelectedTime(slot.time)}
-                            className={`min-h-[56px] px-4 py-3 rounded-2xl border-2 font-bold text-sm sm:text-base flex flex-col items-center justify-center gap-0.5 transition-all ${
-                              isSelected
-                                ? "bg-[#C8A96B] text-[#0D0F0E] border-[#E4C88E] shadow-[0_0_15px_rgba(200,169,107,0.4)] scale-105 cursor-pointer"
-                                : isAvailable
-                                ? "bg-[#101311] text-[#F7F4EE] border-[#2A332E] hover:border-[#C8A96B] hover:bg-[#1A201D] cursor-pointer"
-                                : "bg-[#161817] text-[#555E59] border-[#222624] opacity-50 cursor-not-allowed line-through"
-                            }`}
-                          >
-                            <span dir="ltr">{slot.time}</span>
-                            <span className="text-[10px] font-normal opacity-80">
-                              {isSelected ? "انتخاب شما" : isAvailable ? "خالی" : "پر شده"}
-                            </span>
-                          </button>
-                        )
-                      })}
+                {/* Slot Capacity Status with Stable Dimensions (Zero Layout Shift) */}
+                <div className="min-h-[260px] flex flex-col justify-start">
+                  {isClosed ? (
+                    <div className="p-8 rounded-2xl bg-[#1C1616] border border-red-500/30 text-center space-y-2 my-auto">
+                      <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
+                      <h4 className="text-lg font-bold text-red-200">سالن در این تاریخ تعطیل است</h4>
+                      <p className="text-sm text-red-300/80">{closedReason || "تعطیلی تقویمی یا استراحت سالن"}</p>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-[#C5BDB2]">ساعت دلخواه خود را لمس کنید:</span>
+                        {slotsLoading && (
+                          <span className="flex items-center gap-1.5 text-xs text-[#E4C88E] animate-pulse">
+                            <RefreshCw className="w-3 h-3 animate-spin" />
+                            <span>در حال بررسی ظرفیت نوبت‌ها...</span>
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 transition-opacity duration-200 ${slotsLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+                        {availableSlots.length === 0 && slotsLoading
+                          ? Array.from({ length: 13 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className="min-h-[56px] px-4 py-3 rounded-2xl border-2 border-[#202522] bg-[#121513] animate-pulse flex flex-col items-center justify-center gap-1"
+                              >
+                                <div className="h-4 w-12 bg-[#202623] rounded" />
+                                <div className="h-2.5 w-8 bg-[#1B201D] rounded" />
+                              </div>
+                            ))
+                          : availableSlots.map((slot) => {
+                              const isSelected = selectedTime === slot.time
+                              const isAvailable = slot.isAvailable
+                              return (
+                                <button
+                                  key={slot.time}
+                                  type="button"
+                                  disabled={!isAvailable}
+                                  onClick={() => setSelectedTime(slot.time)}
+                                  className={`min-h-[56px] px-4 py-3 rounded-2xl border-2 font-bold text-sm sm:text-base flex flex-col items-center justify-center gap-0.5 transition-all ${
+                                    isSelected
+                                      ? "bg-[#C8A96B] text-[#0D0F0E] border-[#E4C88E] ring-2 ring-[#E4C88E]/50 ring-offset-2 ring-offset-[#141715] shadow-[0_0_15px_rgba(200,169,107,0.4)] cursor-pointer"
+                                      : isAvailable
+                                      ? "bg-[#101311] text-[#F7F4EE] border-[#2A332E] hover:border-[#C8A96B] hover:bg-[#1A201D] cursor-pointer"
+                                      : "bg-[#161817] text-[#555E59] border-[#222624] opacity-50 cursor-not-allowed line-through"
+                                  }`}
+                                >
+                                  <span dir="ltr">{slot.time}</span>
+                                  <span className="text-[10px] font-normal opacity-80">
+                                    {isSelected ? "انتخاب شما" : isAvailable ? "خالی" : "پر شده"}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* Navigation Buttons */}
                 <div className="pt-6 border-t border-[#222825] flex items-center justify-between gap-4">
@@ -630,6 +649,14 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                         {otpTimer > 0 ? `${formatTimer(otpTimer)} تا ارسال مجدد` : isOtpSent ? "ارسال دوباره کد" : "ارسال پیامک کد"}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Optional Date of Birth */}
+                  <div className="pt-1">
+                    <JalaliBirthDatePicker
+                      value={customerBirthDate || ""}
+                      onChange={setCustomerBirthDate}
+                    />
                   </div>
 
                   {/* Dev Test Code Autofill Pill */}
@@ -736,6 +763,9 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   <div className="p-3 rounded-xl bg-[#161A18] border border-[#222724] text-xs space-y-1">
                     <div className="text-[#8C8477]">رزرو گیرنده: <strong className="text-[#F7F4EE]">{customerName}</strong></div>
                     <div className="text-[#8C8477]">شماره تماس: <strong className="text-[#F7F4EE] font-mono" dir="ltr">{customerPhone}</strong></div>
+                    {customerBirthDate && (
+                      <div className="text-[#8C8477]">تاریخ تولد: <strong className="text-[#E4C88E] font-mono">{toPersianDigits(customerBirthDate)}</strong></div>
+                    )}
                   </div>
 
                   {/* Financial Breakdown */}

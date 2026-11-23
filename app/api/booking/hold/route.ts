@@ -5,7 +5,7 @@ import { isValidIranianPhone } from "@/lib/providers/sms"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { barberId, serviceId, dateStr, timeStr, customerName, customerPhone, customerEmail } = body
+    const { barberId, serviceId, dateStr, timeStr, customerName, customerPhone, customerEmail, customerBirthDate } = body
 
     if (!serviceId || !dateStr || !timeStr || !customerName || !customerPhone) {
       return NextResponse.json(
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       customerName,
       customerPhone,
       customerEmail,
+      customerBirthDate,
     })
 
     return NextResponse.json({

@@ -240,6 +240,7 @@ export async function reserveSlotHold(params: {
   customerName: string
   customerPhone: string
   customerEmail?: string
+  customerBirthDate?: string
   holdMinutes?: number
 }): Promise<{
   holdId: string
@@ -311,7 +312,13 @@ export async function reserveSlotHold(params: {
           phone: normalizedPhone,
           name: params.customerName,
           email: params.customerEmail || null,
+          birthDate: params.customerBirthDate || null,
         },
+      })
+    } else if (params.customerBirthDate && !customer.birthDate) {
+      await tx.customer.update({
+        where: { id: customer.id },
+        data: { birthDate: params.customerBirthDate },
       })
     }
 
@@ -337,6 +344,7 @@ export async function reserveSlotHold(params: {
         customerName: params.customerName,
         customerPhone: normalizedPhone,
         customerEmail: params.customerEmail || null,
+        customerBirthDate: params.customerBirthDate || null,
         date: slotUtc,
         endDate: slotEndUtc,
         status: "HELD",

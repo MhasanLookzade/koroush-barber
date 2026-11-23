@@ -24,6 +24,7 @@ import {
   Timer,
   RefreshCw,
 } from "lucide-react"
+import { JalaliBirthDatePicker } from "./JalaliBirthDatePicker"
 
 interface Service {
   id: string
@@ -65,6 +66,7 @@ export function BookingWizard() {
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
+  const [customerBirthDate, setCustomerBirthDate] = useState<string | null>(null)
   const [otpCode, setOtpCode] = useState("")
   const [isOtpSent, setIsOtpSent] = useState(false)
   const [isPhoneVerified, setIsPhoneVerified] = useState(false)
@@ -256,6 +258,7 @@ export function BookingWizard() {
           customerName,
           customerPhone,
           customerEmail,
+          customerBirthDate,
         }),
       })
 
@@ -512,7 +515,7 @@ export function BookingWizard() {
           </div>
 
           {/* Slots View */}
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 min-h-[260px]">
             <div className="flex justify-between items-center">
               <label className="text-sm font-medium text-[#F5F1E8] block">
                 ساعت‌های خالی این روز:
@@ -533,11 +536,21 @@ export function BookingWizard() {
               </div>
             ) : (
               <div
-                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"
+                className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 transition-opacity duration-200 ${slotsLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}
                 role="radiogroup"
                 aria-label="ساعت‌های خالی"
               >
-                {availableSlots.map((slot) => {
+                {availableSlots.length === 0 && slotsLoading
+                  ? Array.from({ length: 13 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="p-3.5 rounded-xl border border-[#202422] bg-[#121413] animate-pulse flex flex-col items-center justify-center min-h-[56px] gap-1"
+                      >
+                        <div className="h-4 w-12 bg-[#202623] rounded" />
+                        <div className="h-2.5 w-8 bg-[#1B201D] rounded" />
+                      </div>
+                    ))
+                  : availableSlots.map((slot) => {
                   const isSelected = selectedTime === slot.time
                   const isAvailable = slot.isAvailable
 
@@ -654,6 +667,14 @@ export function BookingWizard() {
                   )}
                 </div>
               </div>
+
+              {/* Optional Date of Birth */}
+              <div className="pt-2">
+                <JalaliBirthDatePicker
+                  value={customerBirthDate || ""}
+                  onChange={setCustomerBirthDate}
+                />
+              </div>
             </div>
 
             {/* OTP Verification Input */}
@@ -745,6 +766,12 @@ export function BookingWizard() {
                 <span className="text-[#A8A39A] block text-xs">خدمت انتخاب شده:</span>
                 <span className="font-bold text-[#F5F1E8] text-base">{selectedService.name}</span>
                 <span className="text-xs text-[#A8A39A] block">مدت نوبت: ۶۰ دقیقه اختصاصی</span>
+                <div className="text-xs text-[#A8A39A] pt-1">
+                  مشتری: <strong className="text-[#F5F1E8]">{customerName}</strong> ({toPersianDigits(customerPhone)})
+                  {customerBirthDate && (
+                    <span className="block text-[#C8A96B] mt-0.5">تاریخ تولد: {toPersianDigits(customerBirthDate)}</span>
+                  )}
+                </div>
               </div>
               <div className="space-y-1 sm:text-left">
                 <span className="text-[#A8A39A] block text-xs">زمان مراجعه:</span>

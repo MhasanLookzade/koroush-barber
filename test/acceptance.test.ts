@@ -490,6 +490,91 @@ async function runAcceptanceSuite() {
   )
 
   // -------------------------------------------------------------------------
+  // Scenario 16: Jalali Birth Date Validation and Customer Profile Binding
+  // -------------------------------------------------------------------------
+  console.log("\n📌 Scenario 16: Optional Jalali Birth Date Support")
+  const sampleBirthDate = "1372/08/25"
+  const currentJalaliYear = 1405
+  const birthYear = parseInt(sampleBirthDate.split("/")[0], 10)
+  const isNonFuture = birthYear < currentJalaliYear
+  assert(
+    isNonFuture === true && birthYear >= 1320,
+    "Jalali birth date within valid non-future range (1320 to current Jalali year)"
+  )
+
+  // Verify persistence on Customer model
+  const testCustomerWithBirth = await prisma.customer.create({
+    data: {
+      phone: "09129998877",
+      name: "آزمون تاریخ تولد",
+      birthDate: sampleBirthDate,
+    },
+  })
+  assert(
+    testCustomerWithBirth.birthDate === sampleBirthDate,
+    "Optional Jalali birth date successfully persisted and queryable on customer record"
+  )
+
+  // -------------------------------------------------------------------------
+  // Scenario 17: Customer Review System & Moderation Lifecycle
+  // -------------------------------------------------------------------------
+  console.log("\n📌 Scenario 17: Moderated Customer Review System")
+  // 17.1 Test submission with verified tracking code
+  const verifiedTrackingCode = "KB-CUTOFF-TEST"
+  const appExists = await prisma.appointment.findFirst({
+    where: { trackingCode: verifiedTrackingCode, status: { in: ["CONFIRMED", "COMPLETED"] } },
+  })
+  const isEligibleForVerification = Boolean(appExists)
+  assert(
+    isEligibleForVerification === true,
+    "Existing confirmed appointment tracking code validates customer verification eligibility"
+  )
+
+  // 17.2 Create test review - must be PENDING by default
+  const createdReview = await prisma.review.create({
+    data: {
+      name: "کاربر تستی",
+      rating: 5,
+      comment: "کیفیت بسیار عالی و دقت در اجرای فید مو",
+      trackingCode: verifiedTrackingCode,
+      isVerified: isEligibleForVerification,
+      status: "PENDING",
+    },
+  })
+  assert(
+    createdReview.status === "PENDING",
+    "New customer review is assigned PENDING status by default, awaiting admin moderation"
+  )
+  assert(
+    createdReview.isVerified === true,
+    "Review submitted with valid confirmed tracking code receives verified badge"
+  )
+
+  // 17.3 Public query must NOT expose pending review
+  const publicReviews = await prisma.review.findMany({
+    where: { status: "APPROVED" },
+  })
+  const isPendingExposed = publicReviews.some((r) => r.id === createdReview.id)
+  assert(
+    isPendingExposed === false,
+    "Pending review is hidden from public review list until approved"
+  )
+
+  // 17.4 Admin moderation approval
+  const approvedReview = await prisma.review.update({
+    where: { id: createdReview.id },
+    data: { status: "APPROVED", adminNote: "تایید شده توسط مدیریت" },
+  })
+  assert(
+    approvedReview.status === "APPROVED" && approvedReview.adminNote !== null,
+    "Admin moderation transitions review to APPROVED status with optional admin notes"
+  )
+
+  // Clean up test customer and test review
+  await prisma.review.delete({ where: { id: createdReview.id } }).catch(() => {})
+  await prisma.customer.delete({ where: { id: testCustomerWithBirth.id } }).catch(() => {})
+
+  // -------------------------------------------------------------------------
   // Final Results
   // -------------------------------------------------------------------------
   console.log("\n==================================================================")

@@ -271,3 +271,100 @@ export function getTehranTimeString(date: Date): string {
     hour12: false,
   }).format(date)
 }
+
+/**
+ * Check if Jalali year is leap year (سال کبیسه جلالی)
+ */
+export function isJalaliLeapYear(jy: number): boolean {
+  const [gy, gm, gd] = jalaliToGregorian(jy, 12, 30)
+  const [backJy, backJm, backJd] = gregorianToJalali(gy, gm, gd)
+  return backJy === jy && backJm === 12 && backJd === 30
+}
+
+/**
+ * Get number of days in a Jalali month (1-6: 31, 7-11: 30, 12: 29 or 30)
+ */
+export function getJalaliMonthLength(jy: number, jm: number): number {
+  if (jm >= 1 && jm <= 6) return 31
+  if (jm >= 7 && jm <= 11) return 30
+  if (jm === 12) return isJalaliLeapYear(jy) ? 30 : 29
+  return 30
+}
+
+/**
+ * Get day of week for the 1st day of a Jalali month
+ * 0 = شنبه, 1 = یکشنبه, ..., 6 = جمعه
+ */
+export function getJalaliFirstDayOfWeek(jy: number, jm: number): number {
+  const [gy, gm, gd] = jalaliToGregorian(jy, jm, 1)
+  const d = new Date(Date.UTC(gy, gm - 1, gd))
+  return (d.getUTCDay() + 1) % 7
+}
+
+/**
+ * Convert Jalali year, month, day to Gregorian YYYY-MM-DD string
+ */
+export function jalaliToGregorianDateString(jy: number, jm: number, jd: number): string {
+  const [gy, gm, gd] = jalaliToGregorian(jy, jm, jd)
+  const yStr = gy.toString()
+  const mStr = gm < 10 ? `0${gm}` : gm.toString()
+  const dStr = gd < 10 ? `0${gd}` : gd.toString()
+  return `${yStr}-${mStr}-${dStr}`
+}
+
+/**
+ * Convert Gregorian YYYY-MM-DD string to Jalali YYYY/MM/DD string
+ */
+export function gregorianToJalaliDateString(dateStr: string): string {
+  if (!dateStr || !dateStr.includes("-")) return ""
+  const [gy, gm, gd] = dateStr.split("-").map(Number)
+  const [jy, jm, jd] = gregorianToJalali(gy, gm, gd)
+  const mStr = jm < 10 ? `0${jm}` : jm.toString()
+  const dStr = jd < 10 ? `0${jd}` : jd.toString()
+  return `${jy}/${mStr}/${dStr}`
+}
+
+/**
+ * Format a Date or date string to readable Jalali date only
+ * e.g. "دوشنبه، ۳ آذر ۱۴۰۵"
+ */
+export function formatJalaliDateOnly(date: Date | string): string {
+  if (!date) return ""
+  let d: Date
+  if (typeof date === "string") {
+    if (date.includes("T")) {
+      d = new Date(date)
+    } else {
+      const parts = date.split("-").map(Number)
+      if (parts.length === 3) {
+        d = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2], 12, 0, 0))
+      } else {
+        d = new Date(date)
+      }
+    }
+  } else {
+    d = date
+  }
+  const j = getJalaliDate(d)
+  return `${j.dayName}، ${toPersianDigits(j.day)} ${j.monthName} ${toPersianDigits(j.year)}`
+}
+
+/**
+ * Get Tehran date offset from today by days (e.g., 0 = today, 1 = tomorrow)
+ */
+export function getRelativeTehranDate(daysOffset: number = 0): {
+  dateStr: string
+  jalaliFormatted: string
+  dayName: string
+} {
+  const d = new Date()
+  d.setDate(d.getDate() + daysOffset)
+  const dateStr = getTehranDateString(d)
+  const j = getJalaliDate(d)
+  return {
+    dateStr,
+    jalaliFormatted: `${j.dayName}، ${toPersianDigits(j.day)} ${j.monthName} ${toPersianDigits(j.year)}`,
+    dayName: j.dayName,
+  }
+}
+

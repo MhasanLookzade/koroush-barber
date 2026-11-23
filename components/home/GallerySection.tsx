@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Sparkles, ZoomIn, X, ChevronRight, ChevronLeft } from "lucide-react"
+import { Sparkles, ZoomIn, X, ChevronRight, ChevronLeft, ArrowRight, ArrowLeft } from "lucide-react"
 import { toPersianDigits } from "@/lib/jalali"
 
 interface GalleryItem {
@@ -66,12 +66,11 @@ export function GallerySection() {
   // Lock body scroll when lightbox is open
   useEffect(() => {
     if (activeItem) {
+      const originalOverflow = document.body.style.overflow
       document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
-    return () => {
-      document.body.style.overflow = ""
+      return () => {
+        document.body.style.overflow = originalOverflow
+      }
     }
   }, [activeItem])
 
@@ -115,7 +114,7 @@ export function GallerySection() {
 
     if (Math.abs(diff) > 40) {
       if (diff > 0) {
-        // Swiped left (Next in standard LTR, but in RTL let's navigate predictably)
+        // Swiped left
         handleNext()
       } else {
         // Swiped right
@@ -196,7 +195,7 @@ export function GallerySection() {
 
       </div>
 
-      {/* Accessible Lightbox Modal */}
+      {/* Accessible Full-Screen Lightbox Modal without Unwanted Cropping */}
       {activeItem && activeIndex !== null && (
         <div
           className="fixed inset-0 z-50 bg-[#0D0F0E]/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 animate-fadeIn"
@@ -205,17 +204,22 @@ export function GallerySection() {
           onTouchEnd={handleTouchEnd}
           role="dialog"
           aria-modal="true"
-          aria-label="نمایش بزرگتر تصویر گالری"
+          aria-label="نمایش تصویر گالری به صورت کامل"
         >
           <div
-            className="relative max-w-4xl w-full bg-[#141715] rounded-3xl overflow-hidden border border-[#C8A96B]/40 shadow-2xl p-3 sm:p-4"
+            className="relative max-w-5xl w-full max-h-[95vh] flex flex-col bg-[#141715] rounded-3xl overflow-hidden border border-[#C8A96B]/40 shadow-2xl p-3 sm:p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Top Toolbar: Counter and Close */}
-            <div className="flex items-center justify-between pb-3 px-2">
-              <span className="text-xs sm:text-sm font-semibold text-[#C8A96B]">
-                تصویر {toPersianDigits(activeIndex + 1)} از {toPersianDigits(GALLERY_ITEMS.length)}
-              </span>
+            {/* Top Toolbar: Counter, Badge, and Close Button */}
+            <div className="flex items-center justify-between pb-3 px-1 border-b border-[#252C28]/60 mb-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs sm:text-sm font-semibold text-[#C8A96B] bg-[#1C221F] px-3 py-1 rounded-full border border-[#C8A96B]/30">
+                  تصویر {toPersianDigits(activeIndex + 1)} از {toPersianDigits(GALLERY_ITEMS.length)}
+                </span>
+                <span className="text-xs text-[#A8A39A] hidden sm:inline">
+                  {activeItem.category}
+                </span>
+              </div>
 
               <button
                 type="button"
@@ -227,19 +231,19 @@ export function GallerySection() {
               </button>
             </div>
 
-            {/* Main Image Frame with Navigation Arrows */}
-            <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-[#0D0F0E] flex items-center justify-center">
+            {/* Main Image Frame - Completely Visible with object-contain (NO cropping) */}
+            <div className="relative w-full flex-1 min-h-[240px] max-h-[66vh] rounded-2xl bg-[#090B0A] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
               <img
                 src={activeItem.src}
                 alt={activeItem.title}
-                className="w-full h-full object-cover select-none"
+                className="max-h-[62vh] max-w-full w-auto h-auto object-contain select-none transition-transform duration-300 rounded-lg"
               />
 
               {/* Prev Button (Right side in RTL) */}
               <button
                 type="button"
                 onClick={handlePrev}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#0D0F0E]/80 backdrop-blur-md border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors shadow-xl cursor-pointer"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#0D0F0E]/80 backdrop-blur-md border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors shadow-2xl cursor-pointer"
                 aria-label="تصویر قبلی"
               >
                 <ChevronRight className="w-6 h-6" />
@@ -249,18 +253,31 @@ export function GallerySection() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#0D0F0E]/80 backdrop-blur-md border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors shadow-xl cursor-pointer"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#0D0F0E]/80 backdrop-blur-md border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors shadow-2xl cursor-pointer"
                 aria-label="تصویر بعدی"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
             </div>
 
-            {/* Bottom Caption */}
-            <div className="p-4 text-center space-y-1">
-              <span className="text-xs text-[#C8A96B] font-semibold block">{activeItem.category}</span>
-              <h3 className="text-lg sm:text-xl font-heading font-bold text-[#F7F4EE]">{activeItem.title}</h3>
-              <p className="text-xs sm:text-sm text-[#A89E90] max-w-lg mx-auto">{activeItem.description}</p>
+            {/* Bottom Details & Keyboard Hint */}
+            <div className="pt-3 px-2 text-center flex flex-col sm:flex-row items-center justify-between gap-2">
+              <div className="text-right sm:text-right w-full sm:w-auto">
+                <h3 className="text-base sm:text-lg font-heading font-bold text-[#F7F4EE] leading-tight">
+                  {activeItem.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-[#A89E90] mt-0.5 line-clamp-2">
+                  {activeItem.description}
+                </p>
+              </div>
+
+              <div className="text-[11px] text-[#7E776C] shrink-0 hidden md:block">
+                <span>کلیدهای </span>
+                <kbd className="px-1.5 py-0.5 bg-[#1C221F] border border-[#2B322E] rounded text-[#C8A96B]">←</kbd>
+                <span> و </span>
+                <kbd className="px-1.5 py-0.5 bg-[#1C221F] border border-[#2B322E] rounded text-[#C8A96B]">→</kbd>
+                <span> یا کشیدن انگشت</span>
+              </div>
             </div>
           </div>
         </div>

@@ -26,7 +26,7 @@ export function AboutSection() {
               </div>
 
               {/* Experience Badge */}
-              <div className="absolute -bottom-6 -left-4 sm:-left-6 bg-[#161917]/95 backdrop-blur-xl border border-[#C8A96B]/40 rounded-2xl p-5 shadow-2xl">
+              <div className="absolute -bottom-6 left-2 sm:-left-6 bg-[#161917]/95 backdrop-blur-xl border border-[#C8A96B]/40 rounded-2xl p-4 sm:p-5 shadow-2xl">
                 <div className="text-3xl font-extrabold text-[#E4C88E] font-heading">۱۵+</div>
                 <div className="text-xs font-semibold text-[#F7F4EE] mt-0.5">سال تجربه تخصصی</div>
                 <div className="text-[11px] text-[#A89E90]">پیرایش کلاسیک و مدرن</div>

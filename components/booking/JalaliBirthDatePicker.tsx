@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Check, X } from "lucide-react"
+import { Calendar, Check, X, ChevronDown } from "lucide-react"
 import { toPersianDigits } from "@/lib/jalali"
 
 interface JalaliBirthDatePickerProps {
@@ -107,7 +107,7 @@ export function JalaliBirthDatePicker({
           <select
             value={year}
             onChange={(e) => setYear(e.target.value)}
-            className="w-full px-3 py-3 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer"
+            className="w-full pr-2.5 pl-6 py-2.5 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer min-h-[44px]"
             aria-label="سال تولد"
           >
             <option value="" className="bg-[#141715] text-[#8C8477]">
@@ -119,6 +119,7 @@ export function JalaliBirthDatePicker({
               </option>
             ))}
           </select>
+          <ChevronDown className="w-3.5 h-3.5 text-[#8C8477] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
         {/* Month Select */}
@@ -126,7 +127,7 @@ export function JalaliBirthDatePicker({
           <select
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="w-full px-3 py-3 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer"
+            className="w-full pr-2.5 pl-6 py-2.5 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer min-h-[44px]"
             aria-label="ماه تولد"
           >
             <option value="" className="bg-[#141715] text-[#8C8477]">
@@ -138,6 +139,7 @@ export function JalaliBirthDatePicker({
               </option>
             ))}
           </select>
+          <ChevronDown className="w-3.5 h-3.5 text-[#8C8477] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
 
         {/* Day Select */}
@@ -145,7 +147,7 @@ export function JalaliBirthDatePicker({
           <select
             value={day}
             onChange={(e) => setDay(e.target.value)}
-            className="w-full px-3 py-3 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer"
+            className="w-full pr-2.5 pl-6 py-2.5 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer min-h-[44px]"
             aria-label="روز تولد"
           >
             <option value="" className="bg-[#141715] text-[#8C8477]">
@@ -157,6 +159,7 @@ export function JalaliBirthDatePicker({
               </option>
             ))}
           </select>
+          <ChevronDown className="w-3.5 h-3.5 text-[#8C8477] absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
     </div>

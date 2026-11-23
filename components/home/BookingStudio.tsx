@@ -292,9 +292,9 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   }
 
   return (
-    <section id="booking" className="py-24 bg-[#0F1210] relative" dir="rtl">
-      {/* Background radial accent */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#C8A96B]/5 blur-[160px] pointer-events-none" />
+    <section id="booking" className="py-24 bg-[#0F1210] relative overflow-hidden" dir="rtl">
+      {/* Background radial accent - contained to prevent horizontal scroll */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] sm:w-[500px] sm:h-[500px] lg:w-[700px] lg:h-[700px] rounded-full bg-[#C8A96B]/5 blur-[100px] sm:blur-[160px] pointer-events-none max-w-full" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
@@ -315,14 +315,14 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         </div>
 
         {/* Stepper Navigation */}
-        <nav aria-label="مراحل رزرو نوبت" className="mb-10 bg-[#141715] p-4 sm:p-6 rounded-3xl border border-[#242A27] shadow-xl">
+        <nav aria-label="مراحل رزرو نوبت" className="mb-10 bg-[#141715] p-3 sm:p-6 rounded-3xl border border-[#242A27] shadow-xl">
           <ol className="flex items-center justify-between relative">
             <div className="absolute top-1/2 left-4 right-4 h-0.5 bg-[#222825] -translate-y-1/2 z-0" />
             {[
-              { num: 1, label: "انتخاب خدمت", icon: Scissors },
-              { num: 2, label: "تاریخ و ساعت", icon: Calendar },
-              { num: 3, label: "تایید شماره موبایل", icon: Phone },
-              { num: 4, label: "پیش‌فاکتور و بیعانه", icon: CreditCard },
+              { num: 1, label: "انتخاب خدمت", shortLabel: "خدمت", icon: Scissors },
+              { num: 2, label: "تاریخ و ساعت", shortLabel: "زمان", icon: Calendar },
+              { num: 3, label: "تایید شماره موبایل", shortLabel: "مشخصات", icon: Phone },
+              { num: 4, label: "پیش‌فاکتور و بیعانه", shortLabel: "پرداخت", icon: CreditCard },
             ].map((step) => {
               const isCompleted = currentStep > step.num
               const isCurrent = currentStep === step.num
@@ -333,7 +333,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                     type="button"
                     disabled={step.num > currentStep}
                     onClick={() => step.num < currentStep && setCurrentStep(step.num as 1 | 2 | 3 | 4)}
-                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center font-bold text-base transition-all duration-300 ${
+                    className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-sm sm:text-base transition-all duration-300 min-h-[44px] min-w-[44px] ${
                       isCurrent
                         ? "bg-gradient-to-br from-[#E4C88E] via-[#C8A96B] to-[#9A773F] text-[#0D0F0E] shadow-[0_0_20px_rgba(200,169,107,0.4)] scale-105"
                         : isCompleted
@@ -341,14 +341,15 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                         : "bg-[#141715] text-[#787063] border border-[#262D29]"
                     }`}
                   >
-                    {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
+                    {isCompleted ? <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6" /> : <Icon className="w-5 h-5 sm:w-6 sm:h-6" />}
                   </button>
                   <span
-                    className={`mt-2.5 text-xs sm:text-sm font-semibold transition-colors ${
+                    className={`mt-2 text-[11px] sm:text-sm font-semibold transition-colors text-center ${
                       isCurrent ? "text-[#E4C88E] font-bold" : isCompleted ? "text-[#F7F4EE]" : "text-[#787063]"
                     }`}
                   >
-                    {step.label}
+                    <span className="hidden sm:inline">{step.label}</span>
+                    <span className="sm:hidden">{step.shortLabel}</span>
                   </span>
                 </li>
               )
@@ -471,32 +472,35 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   </p>
                 </div>
 
-                {/* 7-Day Quick Strip */}
+                {/* 7-Day Quick Strip - Fits completely across all mobile screens */}
                 <div className="space-y-3">
-                  <span className="text-xs font-semibold text-[#C5BDB2]">روز مورد نظر خود را انتخاب کنید:</span>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+                  <span className="text-xs font-semibold text-[#C5BDB2]">روز مورد نظر خود را انتخاب کنید (تمام ۷ روز هفته):</span>
+                  <div className="grid grid-cols-7 gap-1 sm:gap-2.5">
                     {upcomingDays.map((d) => {
                       const isSelected = selectedDateStr === d.dateStr
+                      // Persian day abbreviations for mobile (< 640px)
+                      const shortDay = d.dayName.replace("‌", "").slice(0, 3)
                       return (
                         <button
                           key={d.dateStr}
                           type="button"
                           onClick={() => setSelectedDateStr(d.dateStr)}
-                          className={`p-3 sm:p-4 rounded-2xl border-2 text-center transition-all cursor-pointer ${
+                          className={`p-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 text-center transition-all cursor-pointer min-h-[66px] sm:min-h-[88px] flex flex-col items-center justify-between ${
                             isSelected
-                              ? "bg-[#1E2522] border-[#C8A96B] ring-2 ring-[#C8A96B]/50 ring-offset-2 ring-offset-[#141715] shadow-md"
+                              ? "bg-[#1E2522] border-[#C8A96B] ring-2 ring-[#C8A96B]/50 ring-offset-1 sm:ring-offset-2 ring-offset-[#141715] shadow-md"
                               : "bg-[#101311] border-[#202522] hover:border-[#38413C]"
                           }`}
                         >
-                          <div className={`text-xs font-medium ${isSelected ? "text-[#E4C88E]" : "text-[#8C8477]"}`}>
-                            {d.dayName}
+                          <div className={`text-[10px] sm:text-xs font-medium leading-tight ${isSelected ? "text-[#E4C88E]" : "text-[#8C8477]"}`}>
+                            <span className="hidden sm:inline">{d.dayName}</span>
+                            <span className="sm:hidden">{shortDay}</span>
                           </div>
-                          <div className="text-xl sm:text-2xl font-extrabold text-[#F7F4EE] my-1 font-mono">
+                          <div className="text-base sm:text-2xl font-extrabold text-[#F7F4EE] my-0.5 sm:my-1 font-mono">
                             {d.dayNumber}
                           </div>
-                          <div className="text-[11px] text-[#A89E90]">{d.monthName}</div>
+                          <div className="text-[9px] sm:text-[11px] text-[#A89E90] leading-none">{d.monthName}</div>
                           {d.isToday && (
-                            <div className="mt-1 text-[10px] px-1.5 py-0.5 rounded bg-[#C8A96B]/20 text-[#E4C88E] font-bold">
+                            <div className="mt-0.5 sm:mt-1 text-[8px] sm:text-[10px] px-1 py-0.5 rounded bg-[#C8A96B]/20 text-[#E4C88E] font-bold">
                               امروز
                             </div>
                           )}
@@ -526,12 +530,12 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                         )}
                       </div>
 
-                      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 transition-opacity duration-200 ${slotsLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
+                      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 transition-opacity duration-200 ${slotsLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
                         {availableSlots.length === 0 && slotsLoading
                           ? Array.from({ length: 13 }).map((_, i) => (
                               <div
                                 key={i}
-                                className="min-h-[56px] px-4 py-3 rounded-2xl border-2 border-[#202522] bg-[#121513] animate-pulse flex flex-col items-center justify-center gap-1"
+                                className="min-h-[52px] sm:min-h-[56px] px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-[#202522] bg-[#121513] animate-pulse flex flex-col items-center justify-center gap-1"
                               >
                                 <div className="h-4 w-12 bg-[#202623] rounded" />
                                 <div className="h-2.5 w-8 bg-[#1B201D] rounded" />
@@ -546,7 +550,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                                   type="button"
                                   disabled={!isAvailable}
                                   onClick={() => setSelectedTime(slot.time)}
-                                  className={`min-h-[56px] px-4 py-3 rounded-2xl border-2 font-bold text-sm sm:text-base flex flex-col items-center justify-center gap-0.5 transition-all ${
+                                  className={`min-h-[52px] sm:min-h-[56px] px-2 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border-2 font-bold text-sm sm:text-base flex flex-col items-center justify-center gap-0.5 transition-all ${
                                     isSelected
                                       ? "bg-[#C8A96B] text-[#0D0F0E] border-[#E4C88E] ring-2 ring-[#E4C88E]/50 ring-offset-2 ring-offset-[#141715] shadow-[0_0_15px_rgba(200,169,107,0.4)] cursor-pointer"
                                       : isAvailable
@@ -566,12 +570,12 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   )}
                 </div>
 
-                {/* Navigation Buttons */}
-                <div className="pt-6 border-t border-[#222825] flex items-center justify-between gap-4">
+                {/* Navigation Buttons - Mobile-first stacked layout to prevent overflow */}
+                <div className="pt-6 border-t border-[#222825] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(1)}
-                    className="px-6 py-3.5 rounded-xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] flex items-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-5 sm:px-6 py-3.5 rounded-xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
                     <ArrowRight className="w-4 h-4" />
                     <span>مرحله قبل</span>
@@ -581,7 +585,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                     type="button"
                     disabled={!selectedTime || isClosed}
                     onClick={() => setCurrentStep(3)}
-                    className="px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 shadow-lg flex items-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
                     <span>ثبت مشخصات و تایید شماره</span>
                     <ArrowLeft className="w-5 h-5" />
@@ -628,7 +632,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   {/* Phone Input */}
                   <div className="space-y-1.5 text-right">
                     <label className="text-xs font-semibold text-[#C5BDB2]">شماره تلفن همراه:</label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <div className="relative flex-1">
                         <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8C8477]" />
                         <input
@@ -637,14 +641,14 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                           value={customerPhone}
                           onChange={(e) => setCustomerPhone(e.target.value)}
                           placeholder="09123456789"
-                          className="w-full pr-12 pl-4 py-3.5 rounded-xl bg-[#101311] border border-[#2B332F] text-[#F7F4EE] placeholder-[#5C5549] focus:outline-none focus:border-[#C8A96B] text-base font-mono"
+                          className="w-full pr-12 pl-4 py-3.5 rounded-xl bg-[#101311] border border-[#2B332F] text-[#F7F4EE] placeholder-[#5C5549] focus:outline-none focus:border-[#C8A96B] text-base font-mono min-h-[44px]"
                         />
                       </div>
                       <button
                         type="button"
                         disabled={loading || otpTimer > 0}
                         onClick={handleSendOtp}
-                        className="px-5 py-3.5 rounded-xl bg-[#202723] hover:bg-[#2B3530] text-[#E4C88E] border border-[#C8A96B]/40 font-semibold text-xs sm:text-sm shrink-0 disabled:opacity-50 cursor-pointer"
+                        className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#202723] hover:bg-[#2B3530] text-[#E4C88E] border border-[#C8A96B]/40 font-semibold text-xs sm:text-sm shrink-0 disabled:opacity-50 cursor-pointer min-h-[44px] flex items-center justify-center"
                       >
                         {otpTimer > 0 ? `${formatTimer(otpTimer)} تا ارسال مجدد` : isOtpSent ? "ارسال دوباره کد" : "ارسال پیامک کد"}
                       </button>
@@ -666,7 +670,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                       <button
                         type="button"
                         onClick={() => setOtpCode(devCode)}
-                        className="px-2.5 py-1 rounded bg-[#C8A96B] text-[#0D0F0E] font-bold"
+                        className="px-2.5 py-1 rounded bg-[#C8A96B] text-[#0D0F0E] font-bold min-h-[36px]"
                       >
                         درج خودکار
                       </button>
@@ -684,18 +688,18 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value)}
                         placeholder="123456"
-                        className="w-full px-4 py-3.5 rounded-xl bg-[#101311] border border-[#C8A96B] text-center text-[#F7F4EE] text-2xl tracking-[0.4em] font-mono focus:outline-none"
+                        className="w-full px-4 py-3.5 rounded-xl bg-[#101311] border border-[#C8A96B] text-center text-[#F7F4EE] text-2xl tracking-[0.4em] font-mono focus:outline-none min-h-[44px]"
                       />
                     </div>
                   )}
                 </div>
 
-                {/* Actions */}
-                <div className="pt-6 border-t border-[#222825] flex items-center justify-between gap-4">
+                {/* Actions - Mobile-first stacked layout */}
+                <div className="pt-6 border-t border-[#222825] flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(2)}
-                    className="px-6 py-3.5 rounded-xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] flex items-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-5 sm:px-6 py-3.5 rounded-xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
                     <ArrowRight className="w-4 h-4" />
                     <span>مرحله قبل</span>
@@ -705,7 +709,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                     type="button"
                     disabled={loading || !customerName || !otpCode}
                     onClick={handleVerifyOtp}
-                    className="flex-1 sm:flex-initial px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] disabled:opacity-40 hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] disabled:opacity-40 hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
                     <span>{loading ? "در حال تایید..." : "تایید و مشاهده پیش‌فاکتور"}</span>
                     <ArrowLeft className="w-5 h-5" />
@@ -800,12 +804,12 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   </span>
                 </label>
 
-                {/* Checkout CTA */}
-                <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+                {/* Checkout CTA - Mobile-first stacked order */}
+                <div className="pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(2)}
-                    className="w-full sm:w-auto px-6 py-4 rounded-2xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] cursor-pointer"
+                    className="w-full sm:w-auto px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] cursor-pointer min-h-[44px] flex items-center justify-center"
                   >
                     تغییر زمان یا خدمت
                   </button>
@@ -814,9 +818,9 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                     type="button"
                     disabled={loading || !agreedToTerms || holdRemainingSeconds === 0}
                     onClick={handleProceedToPayment}
-                    className="w-full flex-1 py-4 px-8 rounded-2xl text-base sm:text-lg font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#9A773F] disabled:opacity-40 hover:brightness-110 shadow-[0_4px_25px_rgba(200,169,107,0.35)] flex items-center justify-center gap-3 cursor-pointer"
+                    className="w-full sm:flex-1 py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl sm:rounded-2xl text-base sm:text-lg font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#9A773F] disabled:opacity-40 hover:brightness-110 shadow-[0_4px_25px_rgba(200,169,107,0.35)] flex items-center justify-center gap-2 sm:gap-3 cursor-pointer min-h-[44px]"
                   >
-                    <Lock className="w-5 h-5 text-[#0D0F0E]" />
+                    <Lock className="w-5 h-5 text-[#0D0F0E] shrink-0" />
                     <span>
                       {loading ? "در حال اتصال به درگاه امن..." : `پرداخت بیعانه (${formatToman(selectedService.depositPrice)})`}
                     </span>

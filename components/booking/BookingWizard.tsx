@@ -490,24 +490,28 @@ export function BookingWizard() {
 
           {/* Quick Date Selector (7 upcoming days) */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-[#F5F1E8] block">روز مورد نظر:</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+            <label className="text-sm font-medium text-[#F5F1E8] block">روز مورد نظر (تمام ۷ روز هفته):</label>
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {upcomingDays.map((d) => {
                 const isSelected = selectedDateStr === d.dateStr
+                const shortDay = d.dayName.replace("‌", "").slice(0, 3)
                 return (
                   <button
                     key={d.dateStr}
                     type="button"
                     onClick={() => setSelectedDateStr(d.dateStr)}
-                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-center min-h-[72px] focus-visible:ring-2 focus-visible:ring-[#C8A96B] ${
+                    className={`p-1.5 sm:p-3 rounded-xl border text-center transition-all flex flex-col items-center justify-between min-h-[66px] sm:min-h-[72px] focus-visible:ring-2 focus-visible:ring-[#C8A96B] ${
                       isSelected
                         ? "bg-[#C8A96B] text-[#0D0F0E] border-[#C8A96B] font-bold shadow-md"
                         : "bg-[#161917] border-[#2D332F] text-[#F5F1E8] hover:border-[#C8A96B]/40 hover:bg-[#1A1D1B]"
                     }`}
                   >
-                    <span className="text-xs block opacity-80">{d.dayName}</span>
-                    <span className="text-lg font-bold block my-0.5">{d.dayNumber}</span>
-                    <span className="text-[10px] block opacity-80">{d.monthName}</span>
+                    <span className="text-[10px] sm:text-xs block opacity-80 leading-none">
+                      <span className="hidden sm:inline">{d.dayName}</span>
+                      <span className="sm:hidden">{shortDay}</span>
+                    </span>
+                    <span className="text-base sm:text-lg font-bold block my-0.5">{d.dayNumber}</span>
+                    <span className="text-[9px] sm:text-[10px] block opacity-80 leading-none">{d.monthName}</span>
                   </button>
                 )
               })}
@@ -589,11 +593,11 @@ export function BookingWizard() {
             )}
           </div>
 
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => setCurrentStep(1)}
-              className="border-[#2D332F] text-[#A8A39A] hover:text-[#F5F1E8] gap-2 px-6"
+              className="border-[#2D332F] text-[#A8A39A] hover:text-[#F5F1E8] gap-2 px-6 w-full sm:w-auto min-h-[44px]"
             >
               <ArrowRight className="w-4 h-4" />
               مرحله قبل
@@ -602,7 +606,7 @@ export function BookingWizard() {
               size="lg"
               onClick={() => setCurrentStep(3)}
               disabled={!selectedTime || isClosed}
-              className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold px-8 py-6 rounded-xl gap-2 text-base"
+              className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold px-8 py-4 rounded-xl gap-2 text-base w-full sm:w-auto min-h-[44px]"
             >
               مرحله بعد: تایید شماره موبایل
               <ArrowLeft className="w-5 h-5" />
@@ -724,11 +728,11 @@ export function BookingWizard() {
             )}
           </div>
 
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4">
             <Button
               variant="outline"
               onClick={() => setCurrentStep(2)}
-              className="border-[#2D332F] text-[#A8A39A] hover:text-[#F5F1E8] gap-2 px-6"
+              className="border-[#2D332F] text-[#A8A39A] hover:text-[#F5F1E8] gap-2 px-6 w-full sm:w-auto min-h-[44px]"
             >
               <ArrowRight className="w-4 h-4" />
               مرحله قبل
@@ -737,7 +741,7 @@ export function BookingWizard() {
               <Button
                 size="lg"
                 onClick={() => setCurrentStep(4)}
-                className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold px-8 py-6 rounded-xl gap-2 text-base"
+                className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold px-8 py-4 rounded-xl gap-2 text-base w-full sm:w-auto min-h-[44px]"
               >
                 مرحله بعد: پیش‌فاکتور و بیعانه
                 <ArrowLeft className="w-5 h-5" />

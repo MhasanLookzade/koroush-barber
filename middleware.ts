@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { verifyAdminToken } from "@/lib/auth"
+import { verifyAdminTokenEdge } from "@/lib/edge-auth"
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Protected Admin Routes
@@ -13,7 +13,7 @@ export function middleware(request: NextRequest) {
 
     let isAuthenticated = false
     if (token) {
-      const session = verifyAdminToken(token)
+      const session = await verifyAdminTokenEdge(token)
       if (session) {
         isAuthenticated = true
       }

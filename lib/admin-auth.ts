@@ -3,7 +3,7 @@ import { verifyAdminToken, AdminSession } from "./auth"
 
 export function getAdminFromRequest(request: NextRequest): AdminSession | null {
   // 1. Try reading cookie
-  const cookie = request.cookies.get("admin_token")?.value
+  const cookie = request.cookies.get("admin_token")?.value || request.cookies.get("admin_auth")?.value
   if (cookie) {
     const session = verifyAdminToken(cookie)
     if (session) return session

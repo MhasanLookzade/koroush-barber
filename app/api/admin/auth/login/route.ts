@@ -65,6 +65,13 @@ export async function POST(request: NextRequest) {
       maxAge: 7 * 24 * 3600,
       path: "/",
     })
+    response.cookies.set("admin_auth", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 3600,
+      path: "/",
+    })
 
     return response
   } catch (error) {

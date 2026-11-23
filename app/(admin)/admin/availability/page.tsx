@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { toPersianDigits, getTehranDateString } from "@/lib/jalali"
+import { toPersianDigits, getTehranDateString, formatJalaliDateOnly } from "@/lib/jalali"
+import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker"
 import {
   Clock,
   Calendar,
@@ -196,13 +197,12 @@ export default function AdminAvailabilityPage() {
 
           <form onSubmit={handleCreateBlock} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <label className="text-[#A8A39A] block">تاریخ مورد نظر:</label>
-              <input
-                type="date"
-                required
+              <label className="text-[#A8A39A] block">تاریخ مورد نظر (جلالی):</label>
+              <JalaliDatePicker
                 value={blockDate}
-                onChange={(e) => setBlockDate(e.target.value)}
-                className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] focus:outline-none"
+                onChange={(d) => setBlockDate(d)}
+                placeholder="انتخاب تاریخ جلالی..."
+                className="w-full text-xs"
               />
             </div>
 
@@ -265,13 +265,12 @@ export default function AdminAvailabilityPage() {
 
           <form onSubmit={handleCreateOverride} className="space-y-4 text-xs">
             <div className="space-y-1">
-              <label className="text-[#A8A39A] block">تاریخ مورد نظر:</label>
-              <input
-                type="date"
-                required
+              <label className="text-[#A8A39A] block">تاریخ مورد نظر (جلالی):</label>
+              <JalaliDatePicker
                 value={overrideDate}
-                onChange={(e) => setOverrideDate(e.target.value)}
-                className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] focus:outline-none"
+                onChange={(d) => setOverrideDate(d)}
+                placeholder="انتخاب تاریخ جلالی..."
+                className="w-full text-xs"
               />
             </div>
 
@@ -326,7 +325,7 @@ export default function AdminAvailabilityPage() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#F5F1E8]">{toPersianDigits(b.date)}</span>
+                    <span className="font-bold text-[#F5F1E8]">{formatJalaliDateOnly(b.date)}</span>
                     <span className="font-mono text-[#C8A96B] text-[11px] dir-ltr" dir="ltr">
                       {toPersianDigits(b.startTime)} - {toPersianDigits(b.endTime)}
                     </span>

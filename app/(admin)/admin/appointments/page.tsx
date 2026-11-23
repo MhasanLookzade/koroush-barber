@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatToman, toPersianDigits, getTehranDateString, getJalaliDate } from "@/lib/jalali"
+import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker"
 import {
   Calendar,
   Clock,
@@ -228,15 +229,13 @@ function AppointmentsContent() {
 
       {/* Filters Bar */}
       <div className="bg-[#161917] p-4 rounded-2xl border border-[#2D332F] flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        {/* Date input */}
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-[#C8A96B] shrink-0" />
-          <span className="text-xs text-[#A8A39A]">تاریخ:</span>
-          <input
-            type="date"
+        {/* Jalali Date Filter */}
+        <div className="flex items-center gap-2 min-w-[220px]">
+          <JalaliDatePicker
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-1.5 text-xs text-[#F5F1E8] focus:outline-none focus:border-[#C8A96B]"
+            onChange={(d) => setSelectedDate(d)}
+            placeholder="انتخاب تاریخ روز..."
+            className="w-full text-xs"
           />
         </div>
 
@@ -455,12 +454,12 @@ function AppointmentsContent() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[#A8A39A] block">تاریخ نوبت:</label>
-                  <input
-                    type="date"
+                  <label className="text-[#A8A39A] block">تاریخ نوبت (جلالی):</label>
+                  <JalaliDatePicker
                     value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] text-xs focus:outline-none"
+                    onChange={(d) => setSelectedDate(d)}
+                    placeholder="انتخاب تاریخ جلالی..."
+                    className="w-full text-xs"
                   />
                 </div>
 

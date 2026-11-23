@@ -1,0 +1,16 @@
+{
+  "name": "آرایشگاه کوروش | Koroush Barber",
+  "short_name": "کوروش باربر",
+  "description": "رزرو آنلاین نوبت آرایشگاه مردانه لوکس",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0F0E",
+  "theme_color": "#0D0F0E",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

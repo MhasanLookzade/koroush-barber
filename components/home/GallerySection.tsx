@@ -1,14 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { Sparkles, ZoomIn, X } from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Sparkles, ZoomIn, X, ChevronRight, ChevronLeft } from "lucide-react"
+import { toPersianDigits } from "@/lib/jalali"
 
 interface GalleryItem {
   id: number
   src: string
   title: string
   category: string
-  aspect?: string
+  description: string
 }
 
 const GALLERY_ITEMS: GalleryItem[] = [
@@ -17,51 +18,122 @@ const GALLERY_ITEMS: GalleryItem[] = [
     src: "/images/gallery-1.svg",
     title: "جایگاه اختصاصی پیرایش VIP",
     category: "فضای سالن",
+    description: "صندلی چرم طبیعی دست‌دوز، آینه برنز با نور ملایم و تهویه مطبوع مستقل.",
   },
   {
     id: 2,
     src: "/images/gallery-2.svg",
     title: "تیغ‌های سنتی ژاپنی و قیچی‌های دست‌ساز",
     category: "ادوات کار",
+    description: "فولاد ضدزنگ دمشقی با برندگی میکرومتری برای خط‌زنی آنکارد و فید تمیز.",
   },
   {
     id: 3,
     src: "/images/gallery-3.svg",
     title: "سرویس حوله گرم استریل با اکالیپتوس",
     category: "مراقبت پوست",
+    description: "بخور حوله گرم گیاهی برای گشودن منافذ پوست و تسکین کامل خستگی روزانه.",
   },
   {
     id: 4,
     src: "/images/gallery-4.svg",
     title: "بار اسپرسو و لاونج انتظار اختصاصی",
     category: "پذیرایی",
+    description: "سرو قهوه تخصصی تازه برشته شده و نوشیدنی‌های ارگانیک در محیطی خلوت و آرام.",
   },
   {
     id: 5,
     src: "/images/gallery-5.svg",
     title: "روغن‌های ارگانیک و واکس‌های دست‌ساز",
     category: "محصولات",
+    description: "فرمولاسیون اختصاصی بدون چربی اضافه برای تغذیه ساقه مو و ریش.",
   },
   {
     id: 6,
     src: "/images/gallery-6.svg",
     title: "سوییت خصوصی پیرایش VIP",
     category: "سوئیت اختصاصی",
+    description: "محیطی کاملاً ایزوله بدون دید از سالن عمومی برای تجربه نهایت آرامش و حریم خصوصی.",
   },
 ]
 
 export function GallerySection() {
-  const [activeItem, setActiveItem] = useState<GalleryItem | null>(null)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [touchStartX, setTouchStartX] = useState<number | null>(null)
+
+  const activeItem = activeIndex !== null ? GALLERY_ITEMS[activeIndex] : null
+
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    if (activeItem) {
+      document.body.style.overflow = "hidden"
+    } else {
+      document.body.style.overflow = ""
+    }
+    return () => {
+      document.body.style.overflow = ""
+    }
+  }, [activeItem])
+
+  const handleNext = useCallback(() => {
+    if (activeIndex === null) return
+    setActiveIndex((activeIndex + 1) % GALLERY_ITEMS.length)
+  }, [activeIndex])
+
+  const handlePrev = useCallback(() => {
+    if (activeIndex === null) return
+    setActiveIndex((activeIndex - 1 + GALLERY_ITEMS.length) % GALLERY_ITEMS.length)
+  }, [activeIndex])
+
+  const handleClose = useCallback(() => {
+    setActiveIndex(null)
+  }, [])
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (activeIndex === null) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose()
+      if (e.key === "ArrowLeft") handleNext()
+      if (e.key === "ArrowRight") handlePrev()
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [activeIndex, handleClose, handleNext, handlePrev])
+
+  // Touch swipe support
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX)
+  }
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return
+    const touchEndX = e.changedTouches[0].clientX
+    const diff = touchStartX - touchEndX
+
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        // Swiped left (Next in standard LTR, but in RTL let's navigate predictably)
+        handleNext()
+      } else {
+        // Swiped right
+        handlePrev()
+      }
+    }
+    setTouchStartX(null)
+  }
 
   return (
-    <section id="gallery" className="py-24 bg-[#0F1210] relative overflow-hidden" dir="rtl">
+    <section id="gallery" className="py-20 sm:py-24 bg-[#0F1210] relative overflow-hidden" dir="rtl">
       {/* Decorative top border */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#2D332F] to-transparent" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto space-y-4 mb-16">
+        <div className="text-center max-w-3xl mx-auto space-y-4 mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#181D1A] border border-[#C8A96B]/30 text-xs sm:text-sm font-semibold text-[#E4C88E]">
             <Sparkles className="w-3.5 h-3.5 text-[#C8A96B]" />
             <span>تجربه بصری و اتمسفر سالن</span>
@@ -71,18 +143,27 @@ export function GallerySection() {
             فضایی آرام و اختصاصی برای شما
           </h2>
 
-          <p className="text-base sm:text-lg text-[#C5BDB2]">
-            طراحی داخلی با تم آبسیدین، چوب طبیعی و نورپردازی ملایم تا لحظات پیرایش شما توام با آرامش کامل باشد.
+          <p className="text-sm sm:text-base text-[#C5BDB2] max-w-xl mx-auto leading-relaxed">
+            طراحی داخلی با آبسیدین، چوب طبیعی و نورپردازی ملایم تا لحظات پیرایش شما توام با آرامش کامل باشد.
           </p>
         </div>
 
         {/* 6-Item Responsive Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {GALLERY_ITEMS.map((item) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {GALLERY_ITEMS.map((item, idx) => (
             <div
               key={item.id}
-              onClick={() => setActiveItem(item)}
-              className="group relative rounded-3xl overflow-hidden aspect-[4/3] bg-[#141715] border border-[#242A27] hover:border-[#C8A96B]/60 transition-all duration-300 shadow-xl cursor-pointer"
+              onClick={() => setActiveIndex(idx)}
+              className="group relative rounded-3xl overflow-hidden aspect-[4/3] bg-[#141715] border border-[#242A27] hover:border-[#C8A96B]/60 transition-all duration-300 shadow-xl cursor-pointer select-none"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault()
+                  setActiveIndex(idx)
+                }
+              }}
+              aria-label={`مشاهده ${item.title}`}
             >
               <img
                 src={item.src}
@@ -92,20 +173,20 @@ export function GallerySection() {
               />
 
               {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F0E] via-[#0D0F0E]/30 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0D0F0E] via-[#0D0F0E]/40 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
 
               {/* Content caption */}
-              <div className="absolute inset-x-0 bottom-0 p-6 flex items-end justify-between">
+              <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 flex items-end justify-between">
                 <div>
                   <span className="text-[11px] font-medium text-[#C8A96B] px-2.5 py-0.5 rounded-md bg-[#1C221F] border border-[#C8A96B]/30">
                     {item.category}
                   </span>
-                  <h3 className="text-base sm:text-lg font-heading font-bold text-[#F7F4EE] mt-2">
+                  <h3 className="text-base sm:text-lg font-heading font-bold text-[#F7F4EE] mt-2 leading-snug">
                     {item.title}
                   </h3>
                 </div>
 
-                <div className="w-10 h-10 rounded-xl bg-[#C8A96B]/20 text-[#E4C88E] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="w-10 h-10 rounded-xl bg-[#C8A96B]/20 text-[#E4C88E] flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 shrink-0">
                   <ZoomIn className="w-5 h-5" />
                 </div>
               </div>
@@ -115,35 +196,71 @@ export function GallerySection() {
 
       </div>
 
-      {/* Lightbox Modal */}
-      {activeItem && (
+      {/* Accessible Lightbox Modal */}
+      {activeItem && activeIndex !== null && (
         <div
-          className="fixed inset-0 z-50 bg-[#0D0F0E]/95 backdrop-blur-2xl flex items-center justify-center p-4 sm:p-8"
-          onClick={() => setActiveItem(null)}
+          className="fixed inset-0 z-50 bg-[#0D0F0E]/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 animate-fadeIn"
+          onClick={handleClose}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          role="dialog"
+          aria-modal="true"
+          aria-label="نمایش بزرگتر تصویر گالری"
         >
           <div
-            className="relative max-w-4xl w-full bg-[#141715] rounded-3xl overflow-hidden border border-[#C8A96B]/40 shadow-2xl p-3"
+            className="relative max-w-4xl w-full bg-[#141715] rounded-3xl overflow-hidden border border-[#C8A96B]/40 shadow-2xl p-3 sm:p-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setActiveItem(null)}
-              className="absolute top-6 left-6 z-10 w-10 h-10 rounded-full bg-[#0D0F0E]/80 border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Top Toolbar: Counter and Close */}
+            <div className="flex items-center justify-between pb-3 px-2">
+              <span className="text-xs sm:text-sm font-semibold text-[#C8A96B]">
+                تصویر {toPersianDigits(activeIndex + 1)} از {toPersianDigits(GALLERY_ITEMS.length)}
+              </span>
 
-            <div className="aspect-[16/10] w-full rounded-2xl overflow-hidden bg-[#0D0F0E]">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-10 h-10 rounded-full bg-[#1C221F] border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors cursor-pointer"
+                aria-label="بستن پنجره"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Main Image Frame with Navigation Arrows */}
+            <div className="relative aspect-[16/10] sm:aspect-[16/9] w-full rounded-2xl overflow-hidden bg-[#0D0F0E] flex items-center justify-center">
               <img
                 src={activeItem.src}
                 alt={activeItem.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover select-none"
               />
+
+              {/* Prev Button (Right side in RTL) */}
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#0D0F0E]/80 backdrop-blur-md border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors shadow-xl cursor-pointer"
+                aria-label="تصویر قبلی"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+
+              {/* Next Button (Left side in RTL) */}
+              <button
+                type="button"
+                onClick={handleNext}
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-[#0D0F0E]/80 backdrop-blur-md border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors shadow-xl cursor-pointer"
+                aria-label="تصویر بعدی"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
             </div>
 
-            <div className="p-4 text-center">
-              <span className="text-xs text-[#C8A96B] font-semibold">{activeItem.category}</span>
-              <h3 className="text-xl font-heading font-bold text-[#F7F4EE] mt-1">{activeItem.title}</h3>
+            {/* Bottom Caption */}
+            <div className="p-4 text-center space-y-1">
+              <span className="text-xs text-[#C8A96B] font-semibold block">{activeItem.category}</span>
+              <h3 className="text-lg sm:text-xl font-heading font-bold text-[#F7F4EE]">{activeItem.title}</h3>
+              <p className="text-xs sm:text-sm text-[#A89E90] max-w-lg mx-auto">{activeItem.description}</p>
             </div>
           </div>
         </div>

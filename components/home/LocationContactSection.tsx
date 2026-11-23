@@ -1,6 +1,6 @@
 "use client"
 
-import { MapPin, Phone, Clock, MessageSquare, Navigation, Car, ShieldCheck } from "lucide-react"
+import { MapPin, Phone, Clock, MessageSquare, Navigation, ShieldCheck } from "lucide-react"
 
 export function LocationContactSection() {
   return (
@@ -89,13 +89,13 @@ export function LocationContactSection() {
               </div>
             </div>
 
-            {/* Parking & Amenities */}
+            {/* Salon Access & Timing Note */}
             <div className="p-5 rounded-3xl bg-[#141715] border border-[#262D29] flex items-center gap-3.5 text-xs text-[#A89E90]">
               <div className="w-10 h-10 rounded-xl bg-[#202623] text-[#C8A96B] flex items-center justify-center shrink-0">
-                <Car className="w-5 h-5" />
+                <Clock className="w-5 h-5" />
               </div>
               <span>
-                دارای <strong className="text-[#F7F4EE]">پارکینگ اختصاصی رایگان</strong> برای مراجعان در مجتمع تجاری پیروز.
+                جهت حفظ نظم و آرامش مراجعان، لطفاً <strong className="text-[#F7F4EE]">۵ دقیقه قبل از ساعت نوبت</strong> در سالن حضور داشته باشید.
               </span>
             </div>
 

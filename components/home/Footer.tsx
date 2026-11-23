@@ -84,7 +84,7 @@ export function Footer() {
                 <span className="text-[#8C8477]">پرداخت: ۲۰٪ بیعانه آنلاین + مانده در سالن</span>
               </li>
               <li>
-                <span className="text-[#8C8477]">پارکینگ: مجتمع تجاری پیروز (رایگان)</span>
+                <span className="text-[#8C8477]">نوبت‌های اختصاصی: ۶۰ دقیقه بدون معطلی</span>
               </li>
               <li className="pt-2">
                 <Link href="/admin-login" className="text-xs text-[#5A5348] hover:text-[#A89E90] transition-colors">

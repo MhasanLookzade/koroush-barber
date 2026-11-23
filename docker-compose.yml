@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL 16 Database
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: koroush-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-koroush_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-koroush_secure_pass_2026}
+      POSTGRES_DB: ${DB_NAME:-koroush_barber}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-koroush_user} -d ${DB_NAME:-koroush_barber}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - koroush-net
+
+  # ----------------------------------------------------------------------------
+  # Koroush Barber Next.js Application
+  # ----------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: koroush-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-koroush_user}:${DB_PASSWORD:-koroush_secure_pass_2026}@postgres:5432/${DB_NAME:-koroush_barber}?schema=public
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-koroush_jwt_secret_production_2026_super_secure}
+      NEXTAUTH_SECRET: ${ADMIN_JWT_SECRET:-koroush_jwt_secret_production_2026_super_secure}
+      PAYMENT_GATEWAY: ${PAYMENT_GATEWAY:-MOCK}
+      ZARINPAL_MERCHANT_ID: ${ZARINPAL_MERCHANT_ID:-}
+      ZARINPAL_SANDBOX: ${ZARINPAL_SANDBOX:-false}
+      SMS_PROVIDER: ${SMS_PROVIDER:-MOCK}
+      KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
+      KAVENEGAR_SENDER: ${KAVENEGAR_SENDER:-}
+      KAVENEGAR_OTP_TEMPLATE: ${KAVENEGAR_OTP_TEMPLATE:-verify}
+      SEED_DATABASE: ${SEED_DATABASE:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - koroush-net
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  koroush-net:
+    driver: bridge

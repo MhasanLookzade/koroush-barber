@@ -1,0 +1,163 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import { Clock, CheckCircle, Moon, Sun, Coffee } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { generateTimeSlots, isTimeSlotAvailable, formatTime } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+
+interface TimeSlotPickerProps {
+  selectedTime: string | null
+  onTimeSelect: (time: string) => void
+  bookedSlots: string[]
+  selectedDate: Date
+  barberWorkingHours?: { startTime: string; endTime: string } | null
+}
+
+const getTimeIcon = (time: string) => {
+  const hour = parseInt(time.split(':')[0])
+  if (hour >= 5 && hour < 12) return <Sun className="h-3.5 w-3.5" />
+  if (hour >= 12 && hour < 17) return <Coffee className="h-3.5 w-3.5" />
+  if (hour >= 17 && hour < 22) return <Moon className="h-3.5 w-3.5" />
+  return <Moon className="h-3.5 w-3.5" />
+}
+
+const getTimeLabel = (time: string) => {
+  const hour = parseInt(time.split(':')[0])
+  if (hour >= 5 && hour < 12) return "morning"
+  if (hour >= 12 && hour < 17) return "afternoon"
+  if (hour >= 17 && hour < 22) return "evening"
+  return "night"
+}
+
+const getGroupIcon = (hour: number) => {
+  if (hour >= 5 && hour < 12) return <Sun className="h-3 w-3 text-yellow-500" />
+  if (hour >= 12 && hour < 17) return <Coffee className="h-3 w-3 text-orange-500" />
+  if (hour >= 17 && hour < 22) return <Moon className="h-3 w-3 text-blue-500" />
+  return <Moon className="h-3 w-3 text-purple-500" />
+}
+
+export function TimeSlotPicker({
+  selectedTime,
+  onTimeSelect,
+  bookedSlots,
+  selectedDate,
+  barberWorkingHours,
+}: TimeSlotPickerProps) {
+  const timeSlots = barberWorkingHours
+    ? generateTimeSlots(
+        parseInt(barberWorkingHours.startTime.split(':')[0]),
+        parseInt(barberWorkingHours.endTime.split(':')[0]),
+        30
+      )
+    : generateTimeSlots(9, 21, 30)
+
+  const availableSlots = timeSlots.filter(slot =>
+    isTimeSlotAvailable(bookedSlots, selectedDate, slot)
+  )
+
+  if (availableSlots.length === 0) {
+    return (
+      <Card className="border-dashed border-muted/50">
+        <CardContent className="py-12 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/50 mx-auto mb-4">
+            <Clock className="h-8 w-8 text-muted-foreground/50" />
+          </div>
+          <p className="text-lg font-medium text-foreground mb-1">No slots available</p>
+          <p className="text-sm text-muted-foreground">Please select another day</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const groupedSlots: Record<string, string[]> = {}
+  availableSlots.forEach(slot => {
+    const label = getTimeLabel(slot)
+    if (!groupedSlots[label]) groupedSlots[label] = []
+    groupedSlots[label].push(slot)
+  })
+
+  const timeOrder = ["morning", "afternoon", "evening", "night"]
+  const filteredGroups = timeOrder.filter(key => groupedSlots[key]?.length)
+  const orderedGroups = filteredGroups.map(key => ({ label: key, slots: groupedSlots[key] }))
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Clock className="h-4 w-4" />
+          <span>{availableSlots.length} available slots</span>
+        </div>
+        <Badge variant="secondary" className="gap-1">
+          <Clock className="h-3 w-3" />
+          30 min each
+        </Badge>
+      </div>
+
+      <div className="space-y-4">
+        {orderedGroups.map(({ label, slots }) => {
+          const firstHour = parseInt(slots[0].split(':')[0])
+          return (
+            <div key={label} className="space-y-2">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="h-px flex-1 bg-border" />
+                <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-muted/50">
+                  {getGroupIcon(firstHour)}
+                  {label}
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+                {slots.map(slot => {
+                  const isBooked = bookedSlots.includes(slot)
+                  const isSelected = selectedTime === slot
+                  return (
+                    <Button
+                      key={slot}
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      size="sm"
+                      className={cn(
+                        "h-12 font-medium transition-all duration-200 relative overflow-hidden",
+                        isSelected && "shadow-luxury hover:shadow-luxury-hover",
+                        isBooked && "opacity-20 cursor-not-allowed",
+                        "hover:scale-105"
+                      )}
+                      onClick={() => !isBooked && onTimeSelect(slot)}
+                      disabled={isBooked}
+                      aria-label={formatTime(slot)}
+                      aria-pressed={isSelected}
+                      aria-disabled={isBooked}
+                    >
+                    {isSelected ? (
+                      <>
+                        <span className="absolute inset-0 bg-gradient-to-r from-primary to-[hsl(42_70%_60%)] opacity-20" />
+                        <span className="relative flex items-center gap-1">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>{formatTime(slot)}</span>
+                        </span>
+                      </>
+                    ) : isBooked ? (
+                      <span className="relative flex items-center gap-1 text-muted-foreground/50 line-through">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{formatTime(slot)}</span>
+                        <span className="text-xs">Booked</span>
+                      </span>
+                    ) : (
+                      <span className="relative flex items-center gap-1">
+                        {getTimeIcon(slot)}
+                        <span>{formatTime(slot)}</span>
+                      </span>
+                    )}
+                    </Button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

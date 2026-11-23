@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Barber {
+  id           String        @id @default(cuid())
+  name         String
+  title        String?
+  email        String?       @unique
+  phone        String?
+  bio          String?
+  avatar       String?
+  rating       Float         @default(5.0)
+  reviewCount  Int           @default(120)
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  services     Service[]     @relation("BarberServices")
+  workingHours WorkingHour[]
+  appointments Appointment[]
+  slotHolds    SlotHold[]
+}
+
+model Service {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?
+  price           Int           // In Tomans
+  depositPrice    Int           // In Tomans
+  depositType     String        @default("fixed") // "fixed" | "percentage"
+  depositPercent  Int?          @default(20)
+  duration        Int           @default(60) // Exactly 60 mins in V1
+  image           String?
+  category        String        @default("اصلاح مو")
+  sortOrder       Int           @default(0)
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  appointments    Appointment[]
+  barbers         Barber[]      @relation("BarberServices")
+}
+
+model WorkingHour {
+  id        String   @id @default(cuid())
+  barberId  String
+  barber    Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime String   @default("10:00") // "10:00"
+  endTime   String   @default("23:00") // "23:00"
+  isWorking Boolean  @default(true)
+
+  @@unique([barberId, dayOfWeek])
+}
+
+model ScheduleOverride {
+  id          String   @id @default(cuid())
+  date        String   // YYYY-MM-DD
+  isClosed    Boolean  @default(false)
+  reason      String?
+  startTime   String?  // Optional override start
+  endTime     String?  // Optional override end
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([date])
+}
+
+model BlockedInterval {
+  id          String   @id @default(cuid())
+  date        String   // YYYY-MM-DD
+  startTime   String   // "14:00"
+  endTime     String   // "15:00"
+  reason      String   @default("استراحت آرایشگر / ناهار")
+  barberId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+}
+
+model SlotHold {
+  id            String   @id @default(cuid())
+  barberId      String
+  barber        Barber   @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  slotTime      DateTime // Authoritative UTC timestamp of slot start
+  customerPhone String
+  expiresAt     DateTime // Typically 10 mins from creation
+  status        String   @default("ACTIVE") // ACTIVE, EXPIRED, RELEASED, CONVERTED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([barberId, slotTime])
+  @@index([expiresAt, status])
+  @@index([customerPhone])
+}
+
+model Appointment {
+  id                 String    @id @default(cuid())
+  trackingCode       String    @unique // e.g. "KB-84920"
+  customerName       String
+  customerPhone      String
+  customerEmail      String?
+  customerId         String?
+  customer           Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  serviceId          String
+  service            Service   @relation(fields: [serviceId], references: [id])
+  barberId           String
+  barber             Barber    @relation(fields: [barberId], references: [id])
+  date               DateTime  // Slot start time UTC
+  endDate            DateTime  // Slot end time UTC (date + 60 mins)
+  
+  // Status: DRAFT, HELD, AWAITING_PAYMENT, CONFIRMED, CANCELLED, EXPIRED, COMPLETED, NO_SHOW, PAYMENT_REVIEW
+  status             String    @default("HELD")
+  
+  // Snapshots of financial values in Tomans
+  totalPrice         Int
+  depositPaid        Int       @default(0)
+  balanceDue         Int       @default(0) // In-salon remaining payable
+  isRemainderPaid    Boolean   @default(false)
+  
+  notes              String?
+  adminNotes         String?
+  cancellationReason String?
+  cancelledAt        DateTime?
+  
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  payments           Payment[]
+
+  @@index([date])
+  @@index([status])
+  @@index([barberId, date])
+  @@index([customerPhone])
+  @@index([trackingCode])
+}
+
+model Payment {
+  id              String      @id @default(cuid())
+  appointmentId   String
+  appointment     Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  authority       String      @unique // Gateway unique authority / token
+  amountToman     Int
+  amountRial      Int
+  gateway         String      @default("MOCK") // "MOCK" | "ZARINPAL"
+  
+  // Status: CREATED, PENDING, VERIFIED, FAILED, REFUND_PENDING, REFUNDED
+  status          String      @default("CREATED")
+  refId           String?     // Bank reference number returned after verify
+  cardPan         String?     // Masked card number e.g. 502229******1234
+  errorCode       String?
+  errorMessage    String?
+  verifiedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@index([authority])
+  @@index([status])
+  @@index([appointmentId])
+}
+
+model OtpChallenge {
+  id            String   @id @default(cuid())
+  phone         String
+  codeHash      String
+  attempts      Int      @default(0)
+  expiresAt     DateTime
+  verified      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  @@index([phone, expiresAt])
+}
+
+model Customer {
+  id            String        @id @default(cuid())
+  name          String
+  phone         String        @unique
+  email         String?       @unique
+  passwordHash  String?
+  avatar        String?
+  notes         String?
+  isVerified    Boolean       @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  appointments  Appointment[]
+  notifications Notification[]
+}
+
+model Notification {
+  id         String    @id @default(cuid())
+  customerId String
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  type       String
+  title      String
+  message    String
+  data       String?
+  isRead     Boolean   @default(false)
+  sentAt     DateTime  @default(now())
+  readAt     DateTime?
+
+  @@index([customerId, isRead])
+}
+
+model AdminUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  passwordHash  String
+  name          String
+  role          String   @default("STAFF") // "OWNER" | "STAFF"
+  isActive      Boolean  @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SiteSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  group       String   @default("general") // general, business, payment, sms
+  label       String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String   // e.g. "SLOT_BLOCKED", "BOOKING_CANCELLED", "SETTING_CHANGED"
+  entity      String   // e.g. "Appointment", "SiteSetting"
+  entityId    String?
+  userId      String?
+  userRole    String?
+  userType    String?
+  oldData     String?
+  newData     String?
+  details     String?  // JSON string
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
+
+model NotificationJob {
+  id          String    @id @default(cuid())
+  phone       String
+  type        String    // "OTP", "CONFIRMATION", "REMINDER", "RECONCILIATION_ALERT"
+  message     String
+  status      String    @default("PENDING") // PENDING, SENT, FAILED
+  error       String?
+  scheduledAt DateTime  @default(now())
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, scheduledAt])
+}

@@ -220,7 +220,7 @@ export function GallerySection() {
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-10 h-10 rounded-full bg-[#1C221F] border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors cursor-pointer"
+                className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-[#1C221F] border border-[#2B322E] text-[#F7F4EE] flex items-center justify-center hover:bg-[#C8A96B] hover:text-[#0D0F0E] transition-colors cursor-pointer"
                 aria-label="بستن پنجره"
               >
                 <X className="w-5 h-5" />

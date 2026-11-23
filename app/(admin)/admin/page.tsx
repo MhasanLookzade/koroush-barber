@@ -51,7 +51,6 @@ interface DashboardData {
     customerPhone: string
     serviceName: string
     time: string
-    status: string
     balanceDue: number
   } | null
   appointments: Array<{
@@ -60,8 +59,8 @@ interface DashboardData {
     customerName: string
     customerPhone: string
     serviceName: string
-    status: string
     time: string
+    status: string
     totalPrice: number
     depositPaid: number
     balanceDue: number
@@ -70,7 +69,7 @@ interface DashboardData {
   recentLogs: Array<{
     id: string
     action: string
-    entity: string
+    details: string
     createdAt: string
   }>
 }
@@ -124,11 +123,11 @@ export default function AdminDashboardPage() {
   const { metrics, today, nextAppointment, appointments, recentLogs } = data
 
   return (
-    <div className="space-y-8" dir="rtl">
+    <div className="space-y-6 sm:space-y-8" dir="rtl">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#2D332F]">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading text-[#F5F1E8]">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-heading text-[#F5F1E8]">
             داشبورد مدیریت کوروش باربر
           </h1>
           <p className="text-xs sm:text-sm text-[#A8A39A] mt-1">
@@ -136,18 +135,18 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <Button
             onClick={fetchDashboard}
             variant="outline"
             size="sm"
-            className="border-[#2D332F] text-[#A8A39A] hover:text-[#F5F1E8] hover:bg-[#161917] text-xs gap-1.5"
+            className="flex-1 sm:flex-initial border-[#2D332F] text-[#A8A39A] hover:text-[#F5F1E8] hover:bg-[#161917] text-xs gap-1.5 h-9"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             بروزرسانی
           </Button>
-          <Link href="/admin/appointments">
-            <Button className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs gap-1.5">
+          <Link href="/admin/appointments" className="flex-1 sm:flex-initial">
+            <Button className="w-full bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs gap-1.5 h-9 cursor-pointer">
               مدیریت نوبت‌ها
               <ArrowLeft className="w-3.5 h-3.5" />
             </Button>
@@ -157,7 +156,7 @@ export default function AdminDashboardPage() {
 
       {/* Actionable Alert: Payment Review */}
       {metrics.paymentReviewCount > 0 && (
-        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-amber-950/40 border border-amber-500/40 text-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0" />
             <span className="text-xs sm:text-sm">
@@ -166,23 +165,23 @@ export default function AdminDashboardPage() {
             </span>
           </div>
           <Link href="/admin/appointments?status=PAYMENT_REVIEW">
-            <Button size="sm" variant="outline" className="border-amber-400 text-amber-300 text-xs">
+            <Button size="sm" variant="outline" className="border-amber-400 text-amber-300 text-xs shrink-0">
               بررسی مغایرت
             </Button>
           </Link>
         </div>
       )}
 
-      {/* Key Metric KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Key Metric KPI Cards (1 col mobile, 2 col tablet, 4 col desktop) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Occupancy Card */}
-        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-5 rounded-2xl space-y-2">
+        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-4 sm:p-5 rounded-2xl space-y-2">
           <div className="flex justify-between items-center text-[#A8A39A]">
             <span className="text-xs">ضریب اشغال امروز:</span>
             <TrendingUp className="w-4 h-4 text-[#C8A96B]" />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold font-mono text-[#F5F1E8]">
+            <span className="text-2xl sm:text-3xl font-bold font-mono text-[#F5F1E8]">
               {toPersianDigits(metrics.occupancyPercentage)}٪
             </span>
             <span className="text-xs text-[#A8A39A]">
@@ -198,36 +197,36 @@ export default function AdminDashboardPage() {
         </Card>
 
         {/* Deposit Collected */}
-        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-5 rounded-2xl space-y-2">
+        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-4 sm:p-5 rounded-2xl space-y-2">
           <div className="flex justify-between items-center text-[#A8A39A]">
             <span className="text-xs">بیعانه وصول‌شده آنلاین:</span>
-            <CreditCard className="w-4 h-4 text-green-400" />
+            <CreditCard className="w-4 h-4 text-emerald-400" />
           </div>
-          <div className="text-2xl font-bold text-green-400 font-mono">
+          <div className="text-xl sm:text-2xl font-bold text-emerald-400 font-mono">
             {formatToman(metrics.totalDepositsCollected)}
           </div>
           <span className="text-[11px] text-[#A8A39A] block">قطعی و واریز شده به حساب</span>
         </Card>
 
         {/* In-Salon Balance Remaining */}
-        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-5 rounded-2xl space-y-2">
+        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-4 sm:p-5 rounded-2xl space-y-2">
           <div className="flex justify-between items-center text-[#A8A39A]">
             <span className="text-xs">مانده قابل تسویه در سالن:</span>
             <Clock className="w-4 h-4 text-[#C8A96B]" />
           </div>
-          <div className="text-2xl font-bold text-[#C8A96B] font-mono">
+          <div className="text-xl sm:text-2xl font-bold text-[#C8A96B] font-mono">
             {formatToman(metrics.totalOutstandingBalance)}
           </div>
           <span className="text-[11px] text-[#A8A39A] block">دریافت حضوری هنگام مراجعه</span>
         </Card>
 
         {/* Gross Services Value */}
-        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-5 rounded-2xl space-y-2">
+        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-4 sm:p-5 rounded-2xl space-y-2">
           <div className="flex justify-between items-center text-[#A8A39A]">
             <span className="text-xs">مجموع ارزش خدمات امروز:</span>
             <Scissors className="w-4 h-4 text-[#A8A39A]" />
           </div>
-          <div className="text-2xl font-bold text-[#F5F1E8] font-mono">
+          <div className="text-xl sm:text-2xl font-bold text-[#F5F1E8] font-mono">
             {formatToman(metrics.totalGrossValue)}
           </div>
           <span className="text-[11px] text-[#A8A39A] block">
@@ -238,22 +237,22 @@ export default function AdminDashboardPage() {
 
       {/* Next Appointment Hero Card */}
       {nextAppointment ? (
-        <Card className="bg-[#161917] border-[#C8A96B]/30 text-[#F5F1E8] p-6 rounded-2xl shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 left-0 bg-[#C8A96B] text-[#0D0F0E] px-4 py-1 text-xs font-bold rounded-br-xl">
+        <Card className="bg-[#161917] border-[#C8A96B]/30 text-[#F5F1E8] p-5 sm:p-6 rounded-2xl shadow-lg relative overflow-hidden">
+          <div className="absolute top-0 left-0 bg-[#C8A96B] text-[#0D0F0E] px-3 sm:px-4 py-1 text-[11px] sm:text-xs font-bold rounded-br-xl">
             نوبت بعدی سالن
           </div>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-1">
               <span className="text-xs text-[#A8A39A]">ساعت شروع:</span>
-              <div className="text-3xl font-bold text-[#C8A96B] font-mono">
+              <div className="text-2xl sm:text-3xl font-bold text-[#C8A96B] font-mono">
                 {toPersianDigits(nextAppointment.time)}
               </div>
-              <h3 className="text-lg font-bold text-[#F5F1E8] pt-1">
+              <h3 className="text-base sm:text-lg font-bold text-[#F5F1E8] pt-1">
                 {nextAppointment.customerName} — {nextAppointment.serviceName}
               </h3>
             </div>
 
-            <div className="flex flex-col sm:items-end gap-2 text-xs">
+            <div className="flex flex-col sm:items-end gap-2 text-xs w-full sm:w-auto">
               <div className="flex items-center gap-2 text-[#A8A39A]">
                 <Phone className="w-3.5 h-3.5 text-[#C8A96B]" />
                 <span className="font-mono text-[#F5F1E8] dir-ltr" dir="ltr">
@@ -266,8 +265,8 @@ export default function AdminDashboardPage() {
                   {formatToman(nextAppointment.balanceDue)}
                 </span>
               </div>
-              <Link href={`/admin/appointments?search=${nextAppointment.trackingCode}`}>
-                <Button size="sm" variant="outline" className="border-[#2D332F] text-xs mt-1">
+              <Link href={`/admin/appointments?search=${nextAppointment.trackingCode}`} className="w-full sm:w-auto">
+                <Button size="sm" variant="outline" className="w-full sm:w-auto border-[#2D332F] text-xs mt-1">
                   مشاهده جزئیات پرونده
                 </Button>
               </Link>
@@ -280,10 +279,10 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Today's Schedule Table */}
+      {/* Today's Schedule (Cards on mobile, Table on desktop) */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-lg font-bold font-heading text-[#F5F1E8]">
+          <h2 className="text-base sm:text-lg font-bold font-heading text-[#F5F1E8]">
             لیست نوبت‌های امروز سالن ({toPersianDigits(appointments.length)})
           </h2>
           <Link href="/admin/appointments" className="text-xs text-[#C8A96B] hover:underline">
@@ -296,77 +295,148 @@ export default function AdminDashboardPage() {
             امروز هیچ نوبتی ثبت نشده است. ظرفیت سالن برای رزرو باز است.
           </div>
         ) : (
-          <div className="bg-[#161917] border border-[#2D332F] rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-right text-xs">
-                <thead className="bg-[#1F2321] text-[#A8A39A] border-b border-[#2D332F]">
-                  <tr>
-                    <th className="p-3.5 font-medium">ساعت</th>
-                    <th className="p-3.5 font-medium">کد رهگیری</th>
-                    <th className="p-3.5 font-medium">مشتری</th>
-                    <th className="p-3.5 font-medium">خدمت</th>
-                    <th className="p-3.5 font-medium">وضعیت</th>
-                    <th className="p-3.5 font-medium">بیعانه واریزی</th>
-                    <th className="p-3.5 font-medium">مانده سالن</th>
-                    <th className="p-3.5 font-medium text-left">عملیات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2D332F]">
-                  {appointments.map((a) => (
-                    <tr key={a.id} className="hover:bg-[#1F2321]/50 transition-colors">
-                      <td className="p-3.5 font-mono font-bold text-[#C8A96B]">
+          <>
+            {/* Mobile View: Cards */}
+            <div className="grid grid-cols-1 gap-3 md:hidden">
+              {appointments.map((a) => (
+                <Card
+                  key={a.id}
+                  className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-4 rounded-2xl space-y-3"
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-[#2D332F]">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-mono font-bold text-[#C8A96B]">
                         {toPersianDigits(a.time)}
-                      </td>
-                      <td className="p-3.5 font-mono text-[#A8A39A] dir-ltr" dir="ltr">
-                        {a.trackingCode}
-                      </td>
-                      <td className="p-3.5 font-bold text-[#F5F1E8]">{a.customerName}</td>
-                      <td className="p-3.5 text-[#A8A39A]">{a.serviceName}</td>
-                      <td className="p-3.5">
-                        <Badge
-                          variant="outline"
-                          className={
-                            a.status === "CONFIRMED"
-                              ? "border-green-500/40 text-green-400 bg-green-500/10 text-[10px]"
-                              : a.status === "COMPLETED"
-                              ? "border-blue-500/40 text-blue-400 bg-blue-500/10 text-[10px]"
-                              : a.status === "CANCELLED"
-                              ? "border-red-500/40 text-red-400 bg-red-500/10 text-[10px]"
-                              : "border-gray-500/40 text-gray-400 text-[10px]"
-                          }
-                        >
-                          {a.status === "CONFIRMED"
-                            ? "تایید شده"
-                            : a.status === "COMPLETED"
-                            ? "تکمیل شده"
-                            : a.status === "CANCELLED"
-                            ? "لغو شده"
-                            : a.status === "NO_SHOW"
-                            ? "عدم حضور"
-                            : a.status}
-                        </Badge>
-                      </td>
-                      <td className="p-3.5 font-mono text-green-400">{formatToman(a.depositPaid)}</td>
-                      <td className="p-3.5 font-mono text-[#F5F1E8]">
-                        {a.isRemainderPaid ? (
-                          <span className="text-xs text-green-400 font-bold">تسویه شد</span>
-                        ) : (
-                          formatToman(a.balanceDue)
-                        )}
-                      </td>
-                      <td className="p-3.5 text-left">
-                        <Link href={`/admin/appointments?search=${a.trackingCode}`}>
-                          <Button size="sm" variant="ghost" className="text-xs text-[#C8A96B] hover:text-[#F5F1E8]">
-                            مدیریت &larr;
-                          </Button>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </span>
+                      <div>
+                        <h4 className="font-bold text-xs text-[#F5F1E8]">{a.customerName}</h4>
+                        <span className="text-[11px] text-[#A8A39A]">{a.serviceName}</span>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        a.status === "CONFIRMED"
+                          ? "border-green-500/40 text-green-400 bg-green-500/10 text-[10px]"
+                          : a.status === "COMPLETED"
+                          ? "border-blue-500/40 text-blue-400 bg-blue-500/10 text-[10px]"
+                          : a.status === "CANCELLED"
+                          ? "border-red-500/40 text-red-400 bg-red-500/10 text-[10px]"
+                          : "border-gray-500/40 text-gray-400 text-[10px]"
+                      }
+                    >
+                      {a.status === "CONFIRMED"
+                        ? "تایید شده"
+                        : a.status === "COMPLETED"
+                        ? "تکمیل شده"
+                        : a.status === "CANCELLED"
+                        ? "لغو شده"
+                        : a.status === "NO_SHOW"
+                        ? "عدم حضور"
+                        : a.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-[#0D0F0E] p-2.5 rounded-xl border border-[#222825]">
+                    <div>
+                      <span className="text-[#8C8477] block text-[10px]">بیعانه آنلاین:</span>
+                      <span className="font-bold text-emerald-400">{formatToman(a.depositPaid)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#8C8477] block text-[10px]">مانده در سالن:</span>
+                      <span className="font-bold text-[#C8A96B]">
+                        {a.isRemainderPaid ? "تسویه شد" : formatToman(a.balanceDue)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] font-mono text-[#A8A39A]" dir="ltr">
+                      {a.trackingCode}
+                    </span>
+                    <Link href={`/admin/appointments?search=${a.trackingCode}`}>
+                      <Button size="sm" variant="ghost" className="text-xs text-[#C8A96B] hover:text-[#F5F1E8] h-8 px-2.5">
+                        مدیریت نوبت &larr;
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
             </div>
-          </div>
+
+            {/* Desktop View: Table */}
+            <div className="hidden md:block bg-[#161917] border border-[#2D332F] rounded-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-right text-xs">
+                  <thead className="bg-[#1F2321] text-[#A8A39A] border-b border-[#2D332F]">
+                    <tr>
+                      <th className="p-3.5 font-medium">ساعت</th>
+                      <th className="p-3.5 font-medium">کد رهگیری</th>
+                      <th className="p-3.5 font-medium">مشتری</th>
+                      <th className="p-3.5 font-medium">خدمت</th>
+                      <th className="p-3.5 font-medium">وضعیت</th>
+                      <th className="p-3.5 font-medium">بیعانه واریزی</th>
+                      <th className="p-3.5 font-medium">مانده سالن</th>
+                      <th className="p-3.5 font-medium text-left">عملیات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#2D332F]">
+                    {appointments.map((a) => (
+                      <tr key={a.id} className="hover:bg-[#1F2321]/50 transition-colors">
+                        <td className="p-3.5 font-mono font-bold text-[#C8A96B]">
+                          {toPersianDigits(a.time)}
+                        </td>
+                        <td className="p-3.5 font-mono text-[#A8A39A] dir-ltr" dir="ltr">
+                          {a.trackingCode}
+                        </td>
+                        <td className="p-3.5 font-bold text-[#F5F1E8]">{a.customerName}</td>
+                        <td className="p-3.5 text-[#A8A39A]">{a.serviceName}</td>
+                        <td className="p-3.5">
+                          <Badge
+                            variant="outline"
+                            className={
+                              a.status === "CONFIRMED"
+                                ? "border-green-500/40 text-green-400 bg-green-500/10 text-[10px]"
+                                : a.status === "COMPLETED"
+                                ? "border-blue-500/40 text-blue-400 bg-blue-500/10 text-[10px]"
+                                : a.status === "CANCELLED"
+                                ? "border-red-500/40 text-red-400 bg-red-500/10 text-[10px]"
+                                : "border-gray-500/40 text-gray-400 text-[10px]"
+                            }
+                          >
+                            {a.status === "CONFIRMED"
+                              ? "تایید شده"
+                              : a.status === "COMPLETED"
+                              ? "تکمیل شده"
+                              : a.status === "CANCELLED"
+                              ? "لغو شده"
+                              : a.status === "NO_SHOW"
+                              ? "عدم حضور"
+                              : a.status}
+                          </Badge>
+                        </td>
+                        <td className="p-3.5 font-mono text-green-400">{formatToman(a.depositPaid)}</td>
+                        <td className="p-3.5 font-mono text-[#F5F1E8]">
+                          {a.isRemainderPaid ? (
+                            <span className="text-xs text-green-400 font-bold">تسویه شد</span>
+                          ) : (
+                            formatToman(a.balanceDue)
+                          )}
+                        </td>
+                        <td className="p-3.5 text-left">
+                          <Link href={`/admin/appointments?search=${a.trackingCode}`}>
+                            <Button size="sm" variant="ghost" className="text-xs text-[#C8A96B] hover:text-[#F5F1E8]">
+                              مدیریت &larr;
+                            </Button>
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>

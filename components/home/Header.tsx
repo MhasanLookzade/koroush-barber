@@ -29,7 +29,8 @@ export function Header() {
   const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith("#")) {
       e.preventDefault()
-      const element = document.querySelector(href)
+      const targetSelector = href === "#services" ? "#booking" : href
+      const element = document.querySelector(targetSelector) || document.querySelector(href)
       if (element) {
         element.scrollIntoView({ behavior: "smooth" })
         setMobileMenuOpen(false)

@@ -94,6 +94,27 @@ export function ReviewSystemSection() {
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  // Body scroll lock when review modal is open
+  useEffect(() => {
+    if (isModalOpen) {
+      const original = document.body.style.overflow
+      document.body.style.overflow = "hidden"
+      return () => {
+        document.body.style.overflow = original
+      }
+    }
+  }, [isModalOpen])
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isModalOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeDialog()
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isModalOpen])
+
   // Fetch approved reviews from API
   useEffect(() => {
     async function loadReviews() {
@@ -291,27 +312,30 @@ export function ReviewSystemSection() {
         </div>
       </div>
 
-      {/* Review Submission Modal Dialog */}
+      {/* Review Submission Modal Dialog - Responsive Bottom Sheet on Mobile */}
       {isModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="review-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
           onClick={(e) => {
             if (e.target === e.currentTarget) closeDialog()
           }}
         >
           <div
-            className="bg-[#161A18] border border-[#2D332F] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative max-h-[90vh] overflow-y-auto"
+            className="bg-[#161A18] border-t sm:border border-[#2D332F] rounded-t-3xl sm:rounded-3xl p-5 sm:p-7 max-w-lg w-full shadow-2xl relative max-h-[92vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Mobile Sheet Drag Handle */}
+            <div className="w-12 h-1.5 bg-[#2E3631] rounded-full mx-auto mb-4 sm:hidden" />
+
             {/* Close Button */}
             <button
               type="button"
               onClick={closeDialog}
               aria-label="بستن فرم نظر"
-              className="absolute top-5 left-5 p-2 rounded-xl text-[#A8A39A] hover:text-[#F7F4EE] hover:bg-[#222824] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="absolute top-4 sm:top-5 left-4 sm:left-5 p-2 rounded-xl text-[#A8A39A] hover:text-[#F7F4EE] hover:bg-[#222824] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 700" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgAfter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141816"/>
+      <stop offset="100%" stop-color="#0A0C0B"/>
+    </linearGradient>
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2D99E"/>
+      <stop offset="50%" stop-color="#C8A96B"/>
+      <stop offset="100%" stop-color="#9E783E"/>
+    </linearGradient>
+    <radialGradient id="haloGlow" cx="50%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#C8A96B" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#0A0C0B" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="600" height="700" fill="url(#bgAfter)"/>
+  <circle cx="300" cy="280" r="240" fill="url(#haloGlow)"/>
+
+  <!-- Geometric luxury guide lines -->
+  <circle cx="300" cy="300" r="260" fill="none" stroke="url(#goldAccent)" stroke-width="1" opacity="0.25" stroke-dasharray="4 6"/>
+  
+  <!-- Shoulders & Tailored Suit Collar -->
+  <path d="M140 700 C140 530, 205 490, 300 490 C395 490, 460 530, 460 700 Z" fill="#1C211E" stroke="url(#goldAccent)" stroke-width="0.5"/>
+  <path d="M260 490 L300 560 L340 490 Z" fill="#F4EFE6"/>
+  <!-- Neck with high muscle definition -->
+  <path d="M260 400 L260 500 L340 500 L340 400 Z" fill="#99806C"/>
+  
+  <!-- Face & Chiseled Jawline -->
+  <path d="M235 300 C235 440, 275 465, 300 465 C325 465, 365 440, 365 300 C365 230, 345 200, 300 200 C255 200, 235 230, 235 300 Z" fill="#BFA793"/>
+  
+  <!-- Skin Fade Gradient Hair (Sharp high fade with textured volume on top) -->
+  <!-- Fade transition on sides -->
+  <path d="M228 290 C225 240, 240 220, 255 210 L255 330 C240 330, 230 310, 228 290 Z" fill="#4A3D34" opacity="0.6"/>
+  <path d="M372 290 C375 240, 360 220, 345 210 L345 330 C360 330, 370 310, 372 290 Z" fill="#4A3D34" opacity="0.6"/>
+  
+  <!-- Sculpted Pompadour / Modern Quiff with precision volume -->
+  <path d="M245 210 C240 130, 280 90, 310 90 C350 90, 375 120, 360 205 C345 185, 320 180, 300 180 C275 180, 255 195, 245 210 Z" fill="#1F1813" stroke="url(#goldAccent)" stroke-width="1"/>
+  <!-- Hair highlights -->
+  <path d="M280 110 Q320 95 340 120" stroke="url(#goldAccent)" stroke-width="2" fill="none" opacity="0.7"/>
+  <path d="M265 140 Q300 120 330 145" stroke="url(#goldAccent)" stroke-width="1.5" fill="none" opacity="0.5"/>
+  
+  <!-- Sharp Geometric Razor-Sculpted Beard & Mustache (Zero flyaways) -->
+  <path d="M236 340 C236 440, 268 472, 300 472 C332 472, 364 440, 364 340 C355 350, 340 360, 335 385 C325 415, 275 415, 265 385 C260 360, 245 350, 236 340 Z" fill="#1F1813"/>
+  <!-- Razor cheek line -->
+  <path d="M238 340 Q270 375 300 375 Q330 375 362 340" stroke="url(#goldAccent)" stroke-width="1.5" fill="none" opacity="0.8"/>
+  
+  <!-- Status Badge with Gold Ring -->
+  <rect x="40" y="40" width="180" height="42" rx="21" fill="#1A1F1C" stroke="url(#goldAccent)" stroke-width="1.5"/>
+  <circle cx="65" cy="61" r="5" fill="#E4C88E"/>
+  <text x="135" y="67" font-family="Vazirmatn, sans-serif" font-size="14" font-weight="700" fill="#E4C88E" text-anchor="middle">استایل نهایی کوروش</text>
+
+  <!-- Sparkles -->
+  <path d="M490 140 L495 155 L510 160 L495 165 L490 180 L485 165 L470 160 L485 155 Z" fill="url(#goldAccent)" opacity="0.8"/>
+  <path d="M110 380 L113 390 L123 393 L113 396 L110 406 L107 396 L97 393 L107 390 Z" fill="url(#goldAccent)" opacity="0.6"/>
+
+  <!-- Bottom subtitle -->
+  <text x="300" y="660" font-family="Vazirmatn, sans-serif" font-size="15" font-weight="600" fill="#E4C88E" text-anchor="middle">فید میلی‌متری، براشینگ با حجم طبیعی و آنکارد دقیق</text>
+</svg>

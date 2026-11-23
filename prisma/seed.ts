@@ -56,51 +56,95 @@ async function main() {
     })
   }
 
-  // 3. Services (All 60 minutes duration in V1, integer pricing in Tomans)
+  // 3. Services (All 60 minutes duration in V1, integer pricing in Tomans, 20% deposit)
   const servicesData = [
     {
-      id: "srv-classic-cut",
-      name: "اصلاح و استایل کلاسیک مو",
-      description: "طراحی فرم متناسب با ساختار چهره، شستشوی سر با شامپوی تقویتی، سشوار و استایل نهایی با واکس مات",
-      price: 250000, // 250,000 Tomans
-      depositPrice: 50000, // 50,000 Tomans deposit
+      id: "srv-full-cut",
+      name: "اصلاح کامل مو و صورت",
+      description: "خدمت جامع پیرایش سر و ریش با طراحی اختصاصی فرم، خط‌زنی دقیق با تیغ سنتی، حوله گرم و سشوار حرفه‌ای",
+      price: 1000000, // 1,000,000 Tomans
+      depositPrice: 200000, // 200,000 Tomans deposit (20%)
       duration: 60,
-      category: "اصلاح مو",
+      category: "اصلاح و استایل",
       sortOrder: 1,
+      image: "/images/service-full.jpg",
+    },
+    {
+      id: "srv-hair-cut",
+      name: "اصلاح مو",
+      description: "کوتاهی کلاسیک و مدرن متناسب با فرم جمجمه و صورت، شست‌وشو با شامپوی ارگانیک و استایل نهایی",
+      price: 750000, // 750,000 Tomans
+      depositPrice: 150000, // 150,000 Tomans deposit (20%)
+      duration: 60,
+      category: "اصلاح و استایل",
+      sortOrder: 2,
       image: "/images/service-haircut.jpg",
     },
     {
-      id: "srv-beard-sculpting",
-      name: "اصلاح تخصصی ریش و خط‌زنی با تیغ",
-      description: "حالت‌دهی ریش با قیچی، خط‌زنی دقیق آنکارد با تیغ سنتی، بخور و حوله گرم، استفاده از روغن نرم‌کننده طبیعی",
-      price: 150000,
-      depositPrice: 50000,
+      id: "srv-beard-trim",
+      name: "اصلاح و مرتب‌سازی ریش و صورت",
+      description: "فرم‌دهی متقارن ریش و سبیل، آنکارد با تیغ ژاپنی، بخور گرم و استفاده از روغن تقویتی طبیعی",
+      price: 350000, // 350,000 Tomans
+      depositPrice: 70000, // 70,000 Tomans deposit (20%)
       duration: 60,
       category: "ریش و سبیل",
-      sortOrder: 2,
+      sortOrder: 3,
       image: "/images/service-beard.jpg",
     },
     {
+      id: "srv-fade-special",
+      name: "اصلاح تخصصی فید و مدل مو",
+      description: "اجرای دقیق انواع فید (Skin Fade, Taper, Drop Fade) با تلفیق تکنیک‌های قیچی و ماشین، تکسچرینگ مدرن",
+      price: 850000, // 850,000 Tomans
+      depositPrice: 170000, // 170,000 Tomans deposit (20%)
+      duration: 60,
+      category: "اصلاح و استایل",
+      sortOrder: 4,
+      image: "/images/service-fade.jpg",
+    },
+    {
       id: "srv-vip-package",
-      name: "پکیج کامل VIP پیرایش و مراقبت",
-      description: "شامل اصلاح کامل مو، استایل ریش، پاکسازی پوست با اسکراب ارگانیک، ماساژ اسکالپ سر و ماسک طلا",
-      price: 500000,
-      depositPrice: 100000,
+      name: "پکیج ویژه اصلاح VIP",
+      description: "پکیج شاهانه شامل اصلاح کامل سر و ریش، فیشیال عمیق پوست، ماسک طلا، ماساژ اسکالپ سر و پذیرایی ویژه سالن",
+      price: 1300000, // 1,300,000 Tomans
+      depositPrice: 260000, // 260,000 Tomans deposit (20%)
       duration: 60,
       category: "پکیج‌های اختصاصی",
-      sortOrder: 3,
+      sortOrder: 5,
       image: "/images/service-vip.jpg",
     },
     {
+      id: "srv-wash-styling",
+      name: "شست‌وشو و حالت‌دهی مو",
+      description: "شست‌وشوی دو مرحله‌ای تقویتی، ماساژ آرامش‌بخش پوست سر، براشینگ و استایل با بهترین واکس و پمادهای مات",
+      price: 200000, // 200,000 Tomans
+      depositPrice: 40000, // 40,000 Tomans deposit (20%)
+      duration: 60,
+      category: "مراقبت و استایل",
+      sortOrder: 6,
+      image: "/images/service-wash.jpg",
+    },
+    {
       id: "srv-facial-care",
-      name: "فیشیال و پاکسازی عمیق پوست",
-      description: "تخلیه کومودون‌ها، بخور سرد و گرم، اسکراب لایه‌بردار، ماسک ضد آلودگی و آبرسانی عمقی پوست",
-      price: 350000,
-      depositPrice: 70000,
+      name: "پاکسازی و مراقبت پوست صورت",
+      description: "بخور گرم، پاکسازی منافذ، اسکراب لایه‌بردار سلول‌های مرده، ماسک زغال فعال و آبرسانی عمیق با سرم طلا",
+      price: 450000, // 450,000 Tomans
+      depositPrice: 90000, // 90,000 Tomans deposit (20%)
       duration: 60,
       category: "مراقبت پوست",
-      sortOrder: 4,
+      sortOrder: 7,
       image: "/images/service-facial.jpg",
+    },
+    {
+      id: "srv-hair-mask",
+      name: "ماسک و مراقبت تخصصی مو",
+      description: "درمان عمقی ساقه مو با کراتین سرد و ویتامینه ارگانیک، رفع خشکی و درخشان‌کننده تخصصی موهای آسیب‌دیده",
+      price: 300000, // 300,000 Tomans
+      depositPrice: 60000, // 60,000 Tomans deposit (20%)
+      duration: 60,
+      category: "مراقبت و استایل",
+      sortOrder: 8,
+      image: "/images/service-mask.jpg",
     },
   ]
 

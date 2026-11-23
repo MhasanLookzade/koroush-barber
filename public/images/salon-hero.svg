@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141715"/>
+      <stop offset="50%" stop-color="#1A1E1C"/>
+      <stop offset="100%" stop-color="#0E100F"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E4C88E"/>
+      <stop offset="50%" stop-color="#C8A96B"/>
+      <stop offset="100%" stop-color="#9A773F"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#C8A96B" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#141715" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="400" cy="280" r="280" fill="url(#glow)"/>
+  <!-- Mirror frame -->
+  <rect x="250" y="80" width="300" height="420" rx="150" fill="none" stroke="url(#gold)" stroke-width="3" opacity="0.6"/>
+  <rect x="260" y="90" width="280" height="400" rx="140" fill="#171B19" opacity="0.8"/>
+  <!-- Barber Chair silhouette -->
+  <path d="M350 480 L450 480 L430 430 L370 430 Z" fill="url(#gold)" opacity="0.7"/>
+  <rect x="390" y="380" width="20" height="60" fill="url(#gold)" opacity="0.8"/>
+  <path d="M340 370 Q400 350 460 370 L450 400 Q400 390 350 400 Z" fill="#252A27"/>
+  <rect x="360" y="270" width="80" height="100" rx="10" fill="#202422" stroke="url(#gold)" stroke-width="1.5"/>
+  <path d="M340 300 Q330 360 340 380" stroke="url(#gold)" stroke-width="3" fill="none"/>
+  <path d="M460 300 Q470 360 460 380" stroke="url(#gold)" stroke-width="3" fill="none"/>
+  <!-- Headrest -->
+  <rect x="380" y="235" width="40" height="25" rx="5" fill="#2E3531" stroke="url(#gold)" stroke-width="1"/>
+  <!-- Decorative Scissors & Comb -->
+  <g transform="translate(100, 380) scale(0.7)" opacity="0.4">
+    <path d="M30 30 Q50 60 80 120 L120 180" stroke="url(#gold)" stroke-width="4" fill="none"/>
+    <path d="M120 30 Q100 60 70 120 L30 180" stroke="url(#gold)" stroke-width="4" fill="none"/>
+    <circle cx="25" cy="25" r="15" stroke="url(#gold)" stroke-width="4" fill="none"/>
+    <circle cx="125" cy="25" r="15" stroke="url(#gold)" stroke-width="4" fill="none"/>
+  </g>
+  <!-- Text Brand -->
+  <text x="400" y="550" font-family="Vazirmatn, sans-serif" font-size="20" font-weight="600" fill="#EADBC8" text-anchor="middle" letter-spacing="2">آرایشگاه کوروش • فضای اختصاصی پیرایش</text>
+</svg>

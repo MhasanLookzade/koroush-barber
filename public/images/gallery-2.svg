@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181B19"/>
+      <stop offset="100%" stop-color="#0F1110"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E4C88E"/>
+      <stop offset="100%" stop-color="#9A773F"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#g2)"/>
+  <!-- Razor & Shears on dark slate towel -->
+  <rect x="120" y="80" width="360" height="260" rx="20" fill="#131514" stroke="#2D3330" stroke-width="1.5"/>
+  <!-- Razor -->
+  <g transform="translate(180, 160) rotate(-25)">
+    <rect x="0" y="0" width="160" height="18" rx="9" fill="#2E251E" stroke="url(#gold)" stroke-width="1"/>
+    <path d="M140 9 L260 2 L260 16 Z" fill="url(#gold)"/>
+    <circle cx="140" cy="9" r="4" fill="#E4C88E"/>
+  </g>
+  <!-- Japanese Shears -->
+  <g transform="translate(340, 240) rotate(35)">
+    <line x1="0" y1="0" x2="140" y2="0" stroke="url(#gold)" stroke-width="3"/>
+    <line x1="20" y1="20" x2="140" y2="0" stroke="url(#gold)" stroke-width="3"/>
+    <circle cx="0" cy="0" r="14" fill="none" stroke="url(#gold)" stroke-width="2.5"/>
+    <circle cx="20" cy="20" r="14" fill="none" stroke="url(#gold)" stroke-width="2.5"/>
+  </g>
+  <text x="300" y="415" font-family="Vazirmatn, sans-serif" font-size="16" font-weight="600" fill="#E4C88E" text-anchor="middle">تیغ‌های سنتی ژاپنی و قیچی‌های دست‌ساز</text>
+</svg>

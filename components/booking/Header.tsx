@@ -7,11 +7,13 @@ import { Scissors, Menu, X, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { href: "/", label: "خانه" },
-  { href: "/services", label: "خدمات" },
-  { href: "/barbers", label: "آرایشگرها" },
-  { href: "/gallery", label: "گالری" },
-  { href: "/contact", label: "تماس" },
+  { href: "/#services", label: "خدمات و تعرفه‌ها" },
+  { href: "/#booking", label: "رزرو نوبت" },
+  { href: "/#comparison", label: "قبل و بعد" },
+  { href: "/#about", label: "درباره سالن" },
+  { href: "/#gallery", label: "گالری" },
+  { href: "/#contact", label: "تماس و آدرس" },
+  { href: "/booking/status", label: "پیگیری نوبت" },
 ]
 
 interface HeaderProps {

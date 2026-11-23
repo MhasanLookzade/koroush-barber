@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#191C1A"/>
+      <stop offset="100%" stop-color="#0E100F"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E4C88E"/>
+      <stop offset="100%" stop-color="#9A773F"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#g5)"/>
+  <!-- Premium grooming products & amber bottles on shelf -->
+  <line x1="80" y1="280" x2="520" y2="280" stroke="url(#gold)" stroke-width="2"/>
+  <!-- Amber Dropper Bottle -->
+  <rect x="200" y="150" width="45" height="130" rx="8" fill="#4B2C15" stroke="url(#gold)" stroke-width="1"/>
+  <rect x="210" y="125" width="25" height="25" fill="#181B19" stroke="url(#gold)" stroke-width="1"/>
+  <rect x="218" y="105" width="9" height="20" rx="4" fill="#E4C88E"/>
+  <!-- Luxury Pomade Jar -->
+  <ellipse cx="320" cy="270" rx="50" ry="15" fill="#181B19" stroke="url(#gold)" stroke-width="1.5"/>
+  <rect x="270" y="210" width="100" height="60" fill="#1D211F" stroke="url(#gold)" stroke-width="1"/>
+  <ellipse cx="320" cy="210" rx="50" ry="15" fill="url(#gold)"/>
+  <text x="320" y="245" font-family="Montserrat, sans-serif" font-size="10" font-weight="700" fill="#E4C88E" text-anchor="middle" letter-spacing="1">KOUROSH</text>
+  <!-- Aftershave Flask -->
+  <path d="M420 280 L405 180 L445 180 Z" fill="#2E3832" stroke="url(#gold)" stroke-width="1"/>
+  <rect x="420" y="160" width="10" height="20" fill="url(#gold)"/>
+  <text x="300" y="415" font-family="Vazirmatn, sans-serif" font-size="16" font-weight="600" fill="#E4C88E" text-anchor="middle">روغن‌های ارگانیک و واکس‌های دست‌ساز پریمیوم</text>
+</svg>

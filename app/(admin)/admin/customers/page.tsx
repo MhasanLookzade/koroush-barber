@@ -19,6 +19,7 @@ interface CustomerItem {
   name: string
   phone: string
   email?: string
+  birthDate?: string | null
   notes?: string
   totalVisits: number
   lifetimeSpend: number
@@ -105,6 +106,7 @@ export default function AdminCustomersPage() {
                 <tr>
                   <th className="p-3.5 font-medium">نام مشتری</th>
                   <th className="p-3.5 font-medium">شماره موبایل</th>
+                  <th className="p-3.5 font-medium">تاریخ تولد</th>
                   <th className="p-3.5 font-medium">تعداد مراجعات</th>
                   <th className="p-3.5 font-medium">ارزش کل خدمات (LTV)</th>
                   <th className="p-3.5 font-medium">آخرین مراجعه</th>
@@ -117,6 +119,15 @@ export default function AdminCustomersPage() {
                     <td className="p-3.5 font-bold text-[#F5F1E8]">{c.name}</td>
                     <td className="p-3.5 font-mono text-[#A8A39A] dir-ltr" dir="ltr">
                       {c.phone}
+                    </td>
+                    <td className="p-3.5 text-xs text-[#E4C88E]">
+                      {c.birthDate ? (
+                        <span className="px-2 py-0.5 rounded-full bg-[#C8A96B]/15 text-[#E4C88E] border border-[#C8A96B]/30 font-mono">
+                          {toPersianDigits(c.birthDate)}
+                        </span>
+                      ) : (
+                        <span className="text-[#6D6559]">—</span>
+                      )}
                     </td>
                     <td className="p-3.5 font-mono text-[#C8A96B] font-bold">
                       {toPersianDigits(c.totalVisits)} بار

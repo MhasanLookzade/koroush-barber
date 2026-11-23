@@ -36,6 +36,7 @@ interface Appointment {
   customerName: string
   customerPhone: string
   customerEmail: string | null
+  customerBirthDate?: string | null
   notes: string | null
   price: number
   service: { id: string; name: string; price: number; duration: number }
@@ -239,6 +240,11 @@ export function AdminAppointmentsClient({ initialParams }: { initialParams: { st
                             <p className="text-sm text-muted-foreground">{apt.customerPhone}</p>
                             {apt.customerEmail && (
                               <p className="text-xs text-muted-foreground">{apt.customerEmail}</p>
+                            )}
+                            {apt.customerBirthDate && (
+                              <span className="inline-block mt-1 text-[11px] px-1.5 py-0.5 rounded bg-[#C8A96B]/15 text-[#E4C88E] border border-[#C8A96B]/30 font-mono">
+                                تولد: {apt.customerBirthDate}
+                              </span>
                             )}
                           </div>
                         </TableCell>

@@ -14,9 +14,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Shield,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const navItems = [
   { href: "/admin", label: "داشبورد مدیریت", icon: LayoutDashboard },
@@ -24,6 +25,7 @@ const navItems = [
   { href: "/admin/availability", label: "ساعات کاری و مسدودی", icon: Clock },
   { href: "/admin/services", label: "خدمات و تعرفه‌ها", icon: Scissors },
   { href: "/admin/customers", label: "دایرکتوری مشتریان", icon: Users },
+  { href: "/admin/reviews", label: "نظرات مراجعان", icon: MessageSquare },
   { href: "/admin/payments", label: "گزارش مالی و تراکنش‌ها", icon: CreditCard },
   { href: "/admin/settings", label: "تنظیمات سالن", icon: Settings },
 ]
@@ -32,6 +34,24 @@ export function AdminSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [pendingReviewsCount, setPendingReviewsCount] = useState<number>(0)
+
+  useEffect(() => {
+    async function loadPendingCount() {
+      try {
+        const res = await fetch("/api/admin/reviews?status=PENDING")
+        if (res.ok) {
+          const data = await res.json()
+          if (data.counts?.pending) {
+            setPendingReviewsCount(data.counts.pending)
+          }
+        }
+      } catch {
+        // Ignored
+      }
+    }
+    loadPendingCount()
+  }, [pathname])
 
   const handleLogout = async () => {
     try {
@@ -95,7 +115,12 @@ export function AdminSidebar() {
               title={isCollapsed ? item.label : undefined}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              {!isCollapsed && <span>{item.label}</span>}
+              {!isCollapsed && <span className="flex-1">{item.label}</span>}
+              {!isCollapsed && item.href === "/admin/reviews" && pendingReviewsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-bold">
+                  {pendingReviewsCount}
+                </span>
+              )}
             </Link>
           )
         })}

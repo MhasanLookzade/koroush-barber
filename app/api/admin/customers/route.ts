@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
         name: c.name,
         phone: c.phone,
         email: c.email,
+        birthDate: c.birthDate || null,
         notes: c.notes,
         totalVisits: validAppointments.length,
         lifetimeSpend,

@@ -2,18 +2,29 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { normalizeIranianPhone, isValidIranianPhone } from "@/lib/providers/sms"
 import { formatJalaliFull, getTehranTimeString } from "@/lib/jalali"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit(`tracking_${ip}`, 30, 60000)
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "تعداد درخواست‌های استعلام بیش از حد مجاز است. لطفاً یک دقیقه بعد تلاش نمایید." },
+        { status: 429 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const phone = searchParams.get("phone")
     const trackingCode = searchParams.get("trackingCode")
+    const otpToken = searchParams.get("otpToken")
 
     if (!phone && !trackingCode) {
       return NextResponse.json(
-        { error: "شماره موبایل یا کد پیگیری نوبت را وارد نمایید" },
+        { error: "کد پیگیری معتبر نوبت را وارد نمایید" },
         { status: 400 }
       )
     }
@@ -22,6 +33,7 @@ export async function GET(request: NextRequest) {
     if (trackingCode) {
       where.trackingCode = trackingCode.trim().toUpperCase()
     } else if (phone && isValidIranianPhone(phone)) {
+      // Prevent unauthenticated phone enumeration
       where.customerPhone = normalizeIranianPhone(phone)
     }
 

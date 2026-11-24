@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { verifyPassword, signAdminToken } from "@/lib/auth"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const rateCheck = checkRateLimit(`login_${ip}`, 8, 15 * 60 * 1000)
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: "تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر مجدداً تلاش فرمایید." },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { username, password } = body
 

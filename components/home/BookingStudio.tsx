@@ -108,6 +108,55 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [closedDaysMap, setClosedDaysMap] = useState<Record<string, { isClosed: boolean; reason?: string }>>({})
+
+  // 7 Days Quick Strip (Pre-calculated for Tehran timezone)
+  const upcomingDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    const dateStr = getTehranDateString(d)
+    const jalali = getJalaliDate(d)
+    return {
+      dateStr,
+      dayName: jalali.dayName,
+      dayNumber: toPersianDigits(jalali.day),
+      monthName: jalali.monthName,
+      year: jalali.year,
+      isToday: i === 0,
+    }
+  })
+
+  // Load week-wide availability to identify disabled or blocked dates
+  useEffect(() => {
+    async function loadWeekAvailability() {
+      try {
+        const results = await Promise.all(
+          upcomingDays.map(async (d) => {
+            try {
+              const res = await fetch(`/api/booking/availability?date=${d.dateStr}`)
+              if (!res.ok) return { dateStr: d.dateStr, isClosed: false }
+              const data = await res.json()
+              return {
+                dateStr: d.dateStr,
+                isClosed: Boolean(data.isClosed),
+                reason: data.closedReason,
+              }
+            } catch {
+              return { dateStr: d.dateStr, isClosed: false }
+            }
+          })
+        )
+        const map: Record<string, { isClosed: boolean; reason?: string }> = {}
+        for (const r of results) {
+          map[r.dateStr] = { isClosed: r.isClosed, reason: r.reason }
+        }
+        setClosedDaysMap(map)
+      } catch {
+        // Silently preserve base availability
+      }
+    }
+    loadWeekAvailability()
+  }, [])
 
   // Check URL query for direct service pre-selection
   useEffect(() => {
@@ -308,22 +357,6 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
     return toPersianDigits(phone)
   }
 
-  // 7 Days Quick Strip
-  const upcomingDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() + i)
-    const dateStr = getTehranDateString(d)
-    const jalali = getJalaliDate(d)
-    return {
-      dateStr,
-      dayName: jalali.dayName,
-      dayNumber: toPersianDigits(jalali.day),
-      monthName: jalali.monthName,
-      year: jalali.year,
-      isToday: i === 0,
-    }
-  })
-
   const formatTimer = (seconds: number) => {
     const m = Math.floor(seconds / 60)
     const s = seconds % 60
@@ -463,6 +496,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                   {services.map((srv) => {
                     const isSelected = selectedService.id === srv.id
+                    const balanceDue = Math.max(0, srv.price - srv.depositPrice)
                     return (
                       <div
                         key={srv.id}
@@ -478,9 +512,14 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-[#232A26] text-[#A89E90] font-medium">
-                              {srv.category}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-[#232A26] text-[#A89E90] font-medium">
+                                {srv.category}
+                              </span>
+                              <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#161B18] text-[#8C8477] border border-[#27302B]">
+                                ۶۰ دقیقه
+                              </span>
+                            </div>
                             {isSelected && (
                               <span className="flex items-center gap-1 text-xs font-bold text-[#E4C88E]">
                                 <CheckCircle2 className="w-4 h-4 text-[#E4C88E]" />
@@ -492,13 +531,20 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                           <p className="text-xs text-[#8C8477] line-clamp-2 leading-relaxed">{srv.description}</p>
                         </div>
 
-                        <div className="pt-3.5 mt-3.5 border-t border-[#1F2522] flex items-center justify-between">
-                          <span className="text-xs text-[#A89E90]">
-                            بیعانه: <strong className="text-[#E4C88E]">{formatToman(srv.depositPrice)}</strong>
-                          </span>
-                          <span className="text-sm sm:text-base font-bold text-[#F7F4EE]">
-                            {formatToman(srv.price)}
-                          </span>
+                        {/* Standardized Pricing Hierarchy */}
+                        <div className="pt-3.5 mt-3.5 border-t border-[#1F2522] space-y-1.5 text-xs">
+                          <div className="flex items-center justify-between text-[#C5BDB2]">
+                            <span>قیمت کامل:</span>
+                            <strong className="text-sm font-bold text-[#F7F4EE]">{formatToman(srv.price)}</strong>
+                          </div>
+                          <div className="flex items-center justify-between text-[#A89E90]">
+                            <span>بیعانه (۲۰٪):</span>
+                            <strong className="text-xs font-bold text-[#E4C88E]">{formatToman(srv.depositPrice)}</strong>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px] text-[#787063]">
+                            <span>مانده پرداخت در سالن:</span>
+                            <span className="text-xs text-[#A89E90]">{formatToman(balanceDue)}</span>
+                          </div>
                         </div>
                       </div>
                     )
@@ -543,36 +589,67 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   <div className="grid grid-cols-7 gap-1 sm:gap-2.5">
                     {upcomingDays.map((d) => {
                       const isSelected = selectedDateStr === d.dateStr
+                      const dayClosed = Boolean(closedDaysMap[d.dateStr]?.isClosed)
                       const shortDay = d.dayName.replace("‌", "").slice(0, 3)
                       return (
                         <button
                           key={d.dateStr}
                           type="button"
-                          onClick={() => setSelectedDateStr(d.dateStr)}
-                          className={`p-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 text-center transition-all cursor-pointer min-h-[66px] sm:min-h-[88px] flex flex-col items-center justify-between ${
+                          onClick={() => {
+                            setSelectedDateStr(d.dateStr)
+                            if (dayClosed) {
+                              setError("این روز برای رزرو نوبت در دسترس نیست. لطفاً روز دیگری انتخاب کنید.")
+                            } else {
+                              setError(null)
+                            }
+                          }}
+                          className={`p-1.5 sm:p-3.5 rounded-xl sm:rounded-2xl border-2 text-center transition-all min-h-[66px] sm:min-h-[88px] flex flex-col items-center justify-between ${
                             isSelected
-                              ? "bg-[#1E2522] border-[#C8A96B] ring-2 ring-[#C8A96B]/50 ring-offset-1 sm:ring-offset-2 ring-offset-[#141715] shadow-md"
-                              : "bg-[#101311] border-[#202522] hover:border-[#38413C]"
+                              ? dayClosed
+                                ? "bg-[#221717] border-red-500/60 ring-2 ring-red-500/40 ring-offset-1 sm:ring-offset-2 ring-offset-[#141715] cursor-pointer"
+                                : "bg-[#1E2522] border-[#C8A96B] ring-2 ring-[#C8A96B]/50 ring-offset-1 sm:ring-offset-2 ring-offset-[#141715] shadow-md cursor-pointer"
+                              : dayClosed
+                              ? "bg-[#171212] border-[#2E1E1E] opacity-60 hover:opacity-90 cursor-pointer"
+                              : "bg-[#101311] border-[#202522] hover:border-[#38413C] cursor-pointer"
                           }`}
                         >
-                          <div className={`text-[10px] sm:text-xs font-medium leading-tight ${isSelected ? "text-[#E4C88E]" : "text-[#8C8477]"}`}>
+                          <div className={`text-[10px] sm:text-xs font-medium leading-tight ${isSelected ? (dayClosed ? "text-red-300" : "text-[#E4C88E]") : dayClosed ? "text-red-400/80" : "text-[#8C8477]"}`}>
                             <span className="hidden sm:inline">{d.dayName}</span>
                             <span className="sm:hidden">{shortDay}</span>
                           </div>
-                          <div className="text-base sm:text-2xl font-extrabold text-[#F7F4EE] my-0.5 sm:my-1 font-mono">
+                          <div className={`text-base sm:text-2xl font-extrabold my-0.5 sm:my-1 font-mono ${dayClosed ? "text-red-300/80" : "text-[#F7F4EE]"}`}>
                             {d.dayNumber}
                           </div>
                           <div className="text-[9px] sm:text-[11px] text-[#A89E90] leading-none">{d.monthName}</div>
-                          {d.isToday && (
+                          {dayClosed ? (
+                            <div className="mt-0.5 sm:mt-1 text-[8px] sm:text-[10px] px-1 py-0.5 rounded bg-red-950/60 text-red-300 border border-red-500/30 font-bold">
+                              تعطیل
+                            </div>
+                          ) : d.isToday ? (
                             <div className="mt-0.5 sm:mt-1 text-[8px] sm:text-[10px] px-1 py-0.5 rounded bg-[#C8A96B]/20 text-[#E4C88E] font-bold">
                               امروز
                             </div>
-                          )}
+                          ) : null}
                         </button>
                       )
                     })}
                   </div>
                 </div>
+
+                {/* Disabled Day Notice Banner */}
+                {(isClosed || Boolean(closedDaysMap[selectedDateStr]?.isClosed)) && (
+                  <div className="p-4 rounded-2xl bg-red-950/40 border border-red-500/40 text-red-200 flex items-start gap-3 text-xs sm:text-sm animate-shake">
+                    <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="font-bold block text-red-200">
+                        این روز برای رزرو نوبت در دسترس نیست. لطفاً روز دیگری انتخاب کنید.
+                      </strong>
+                      <span className="text-xs text-red-300/80 mt-0.5 block">
+                        {closedReason || closedDaysMap[selectedDateStr]?.reason || "سالن در این تاریخ تعطیل بوده یا ظرفیت پذیرش غیرفعال شده است."}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Date Summary Card */}
                 {selectedDayObj && (
@@ -599,8 +676,19 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
 
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                    disabled={isClosed || Boolean(closedDaysMap[selectedDateStr]?.isClosed)}
+                    onClick={() => {
+                      if (isClosed || closedDaysMap[selectedDateStr]?.isClosed) {
+                        setError("این روز برای رزرو نوبت در دسترس نیست. لطفاً روز دیگری انتخاب کنید.")
+                        return
+                      }
+                      setCurrentStep(3)
+                    }}
+                    className={`w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all min-h-[44px] ${
+                      isClosed || closedDaysMap[selectedDateStr]?.isClosed
+                        ? "bg-[#252826] text-[#636865] border border-[#303632] cursor-not-allowed opacity-60"
+                        : "text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] hover:brightness-110 shadow-lg cursor-pointer"
+                    }`}
                   >
                     <span>تایید روز و انتخاب ساعت</span>
                     <ArrowLeft className="w-5 h-5" />
@@ -1110,9 +1198,19 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                     </div>
 
                     <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                      <div className="text-left">
-                        <div className="text-sm sm:text-base font-bold text-[#E4C88E]">{formatToman(srv.price)}</div>
-                        <div className="text-[11px] text-[#8C8477]">بیعانه: {formatToman(srv.depositPrice)}</div>
+                      <div className="text-right sm:text-left bg-[#101311] sm:bg-transparent p-2.5 sm:p-0 rounded-xl sm:rounded-none border border-[#202522] sm:border-0 space-y-0.5 text-xs">
+                        <div className="flex items-center justify-between sm:justify-end gap-2 text-[#C5BDB2]">
+                          <span>قیمت کامل:</span>
+                          <strong className="text-sm font-bold text-[#F7F4EE]">{formatToman(srv.price)}</strong>
+                        </div>
+                        <div className="flex items-center justify-between sm:justify-end gap-2 text-[#A89E90]">
+                          <span>بیعانه:</span>
+                          <strong className="text-xs font-bold text-[#E4C88E]">{formatToman(srv.depositPrice)}</strong>
+                        </div>
+                        <div className="flex items-center justify-between sm:justify-end gap-2 text-[11px] text-[#787063]">
+                          <span>مانده در سالن:</span>
+                          <span className="text-[#A89E90]">{formatToman(Math.max(0, srv.price - srv.depositPrice))}</span>
+                        </div>
                       </div>
 
                       <button

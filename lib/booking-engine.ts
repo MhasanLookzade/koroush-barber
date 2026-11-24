@@ -275,6 +275,27 @@ export async function reserveSlotHold(params: {
 
   // Run interactive ACID transaction to acquire atomic hold
   return await prisma.$transaction(async (tx) => {
+    // 0. Verify date is not disabled or closed in schedule override
+    const override = await tx.scheduleOverride.findUnique({
+      where: { date: params.dateStr },
+    })
+    if (override?.isClosed) {
+      throw new Error("این روز برای رزرو نوبت در دسترس نیست. لطفاً روز دیگری انتخاب کنید.")
+    }
+
+    // 0.1 Verify time is not in a blocked interval
+    const blockedInterval = await tx.blockedInterval.findFirst({
+      where: {
+        date: params.dateStr,
+        startTime: { lte: params.timeStr },
+        endTime: { gt: params.timeStr },
+        OR: [{ barberId: null }, { barberId: params.barberId }],
+      },
+    })
+    if (blockedInterval) {
+      throw new Error("این بازه زمانی توسط مدیریت سالن مسدود شده است. لطفاً ساعت دیگری انتخاب نمایید.")
+    }
+
     // 1. Check if an active confirmed booking already exists for this slot
     const existingConfirmed = await tx.appointment.findFirst({
       where: {

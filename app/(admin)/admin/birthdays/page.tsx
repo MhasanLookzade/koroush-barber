@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { toPersianDigits, PERSIAN_MONTHS } from "@/lib/jalali"
@@ -388,15 +389,22 @@ export default function AdminBirthdaysPage() {
                     <span className="text-[11px] text-[#7E776C]">تبریک امسال ارسال نشده</span>
                   )}
 
-                  <Button
-                    size="sm"
-                    disabled={!c.smsConsent}
-                    onClick={() => openSmsModal(c)}
-                    className="h-8 px-3 text-xs font-semibold bg-[#1C221F] hover:bg-[#C8A96B] hover:text-[#0D0F0E] text-[#E4C88E] border border-[#C8A96B]/30 disabled:opacity-40 cursor-pointer"
-                  >
-                    <Send className="w-3 h-3 ml-1.5" />
-                    <span>ارسال تبریک</span>
-                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <Link
+                      href={`/admin/sms?tab=compose&customerId=${c.id}&type=BIRTHDAY`}
+                      className={!c.smsConsent ? "pointer-events-none opacity-40" : ""}
+                    >
+                      <Button
+                        size="sm"
+                        disabled={!c.smsConsent}
+                        className="h-8 px-3 text-xs font-semibold bg-[#1C221F] hover:bg-[#C8A96B] hover:text-[#0D0F0E] text-[#E4C88E] border border-[#C8A96B]/30 disabled:opacity-40 cursor-pointer min-h-[44px] sm:min-h-0"
+                        title="انتقال به مرکز پیامک و ارسال تبریک تولد"
+                      >
+                        <Send className="w-3 h-3 ml-1.5" />
+                        <span>ارسال پیامک</span>
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               </Card>
             )

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { formatToman, toPersianDigits } from "@/lib/jalali"
@@ -317,7 +318,7 @@ export default function AdminCustomersPage() {
           <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#141715] border border-[#C8A96B]/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-right space-y-6">
             
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#242A27]">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-[#242A27] gap-3">
               <div>
                 <h3 className="text-lg sm:text-xl font-bold font-heading text-[#F7F4EE]">
                   پرونده مشتری: {selectedCustomer.name}
@@ -327,13 +328,26 @@ export default function AdminCustomersPage() {
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setSelectedCustomer(null)}
-                className="p-2 rounded-xl bg-[#1C221F] text-[#A89E90] hover:text-[#F7F4EE] min-h-[40px] min-w-[40px] flex items-center justify-center"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <Link href={`/admin/sms?tab=compose&customerId=${selectedCustomer.id}`}>
+                  <Button
+                    size="sm"
+                    className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs h-9 px-3 gap-1.5 cursor-pointer shadow-md shadow-[#C8A96B]/10 min-h-[44px] sm:min-h-0"
+                    title="ارسال پیامک اختصاصی در مرکز پیامک"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>ارسال پیامک به مشتری</span>
+                  </Button>
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedCustomer(null)}
+                  className="p-2 rounded-xl bg-[#1C221F] text-[#A89E90] hover:text-[#F7F4EE] min-h-[40px] min-w-[40px] flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Quick Stats Grid */}

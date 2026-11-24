@@ -1,20 +1,80 @@
 import type { Metadata, Viewport } from "next"
-import { Playfair_Display } from "next/font/google"
+import localFont from "next/font/local"
 import { SkipLink, defaultSkipTargets } from "@/components/ui/skip-link"
 import "./globals.css"
 
-const vazirmatn = {
-  variable: "--font-body",
-  subsets: ["latin", "arabic"],
+const estedad = localFont({
+  src: [
+    {
+      path: "../public/fonts/estedad/Estedad-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/estedad/Estedad-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/estedad/Estedad-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/estedad/Estedad-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/estedad/Estedad-ExtraBold.woff2",
+      weight: "800",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/estedad/Estedad-Black.woff2",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-estedad",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-}
+})
 
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-heading",
+const vazirmatn = localFont({
+  src: [
+    {
+      path: "../public/fonts/vazirmatn/Vazirmatn-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/vazirmatn/Vazirmatn-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/vazirmatn/Vazirmatn-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/vazirmatn/Vazirmatn-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/vazirmatn/Vazirmatn-ExtraBold.woff2",
+      weight: "800",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/vazirmatn/Vazirmatn-Black.woff2",
+      weight: "900",
+      style: "normal",
+    },
+  ],
+  variable: "--font-vazirmatn",
   display: "swap",
-  weight: ["400", "500", "600", "700", "800", "900"],
 })
 
 export const metadata: Metadata = {
@@ -84,12 +144,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="fa" dir="rtl" className={`${vazirmatn.variable} ${playfair.variable}`}>
+    <html lang="fa" dir="rtl" className={`${vazirmatn.variable} ${estedad.variable}`}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

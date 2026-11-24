@@ -1,6 +1,6 @@
 "use client"
 
-import { Scissors, Clock, ShieldCheck, Sparkles, ArrowLeft, Star, Award, CheckCircle2 } from "lucide-react"
+import { Scissors, Clock, ShieldCheck, Sparkles, Star, Award, CheckCircle2 } from "lucide-react"
 
 export function HeroSection() {
   const scrollTo = (id: string) => {
@@ -57,24 +57,15 @@ export function HeroSection() {
               </div>
             </div>
 
-            {/* Direct Action CTAs */}
-            <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            {/* Direct Action CTA */}
+            <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
               <button
                 type="button"
                 onClick={() => scrollTo("#booking")}
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-base sm:text-lg font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#B58B59] hover:brightness-110 shadow-[0_4px_25px_rgba(200,169,107,0.35)] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
+                className="inline-flex items-center justify-center gap-3 px-8 sm:px-10 py-4 rounded-2xl text-base sm:text-lg font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#B58B59] hover:brightness-110 shadow-[0_4px_25px_rgba(200,169,107,0.35)] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer min-h-[52px]"
               >
                 <span>رزرو آنلاین نوبت</span>
                 <Scissors className="w-5 h-5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => scrollTo("#comparison")}
-                className="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-base font-semibold text-[#E6E0D6] bg-[#161A18] hover:bg-[#202522] border border-[#2B332F] transition-all cursor-pointer min-h-[48px]"
-              >
-                <span>مشاهده نتایج قبل و بعد</span>
-                <ArrowLeft className="w-4 h-4 text-[#C8A96B]" />
               </button>
             </div>
 

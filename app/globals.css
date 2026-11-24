@@ -2,55 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
+/* ============================================================
+   SELF-HOSTED PERSIAN WEBFONTS (SIL Open Font License 1.1)
+   Headings & Brand Display: Estedad (استعداد)
+   Body, UI & Dashboard: Vazirmatn (وزیرمتن)
+   ============================================================ */
+@font-face {
+  font-family: "Estedad";
+  src: url("/fonts/estedad/Estedad-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Estedad";
+  src: url("/fonts/estedad/Estedad-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Estedad";
+  src: url("/fonts/estedad/Estedad-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Estedad";
+  src: url("/fonts/estedad/Estedad-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Estedad";
+  src: url("/fonts/estedad/Estedad-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Estedad";
+  src: url("/fonts/estedad/Estedad-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
-@layer base {
-  :root {
-    /* ============================================================
-       KOUROSH BARBER DESIGN TOKENS - Three-Layer Architecture
-       Layer 1: Primitive (Raw values - never used directly)
-       Layer 2: Semantic (Purpose aliases - used in components)
-       Layer 3: Component (Component-specific - for variants)
-       ============================================================ */
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazirmatn";
+  src: url("/fonts/vazirmatn/Vazirmatn-Black.woff2") format("woff2");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
-    /* ---------- PRIMITIVE TOKENS (Raw Brand Colors) ---------- */
-    /* Deep Black / Slate */
-    --color-slate-50: 210 40% 98%;
-    --color-slate-100: 210 40% 96%;
-    --color-slate-200: 214 32% 91%;
-    --color-slate-300: 213 27% 84%;
-    --color-slate-400: 215 20% 65%;
-    --color-slate-500: 215 16% 47%;
-    --color-slate-600: 215 19% 35%;
-    --color-slate-700: 215 25% 27%;
-    --color-slate-800: 217 33% 17%;
-    --color-slate-900: 222 47% 11%;
-    --color-slate-950: 224 71% 4%;
+:root {
+  /* ============================================================
+     KOUROSH BARBER DESIGN TOKENS - Three-Layer Architecture
+     Layer 1: Primitive (Raw values - never used directly)
+     Layer 2: Semantic (Purpose aliases - used in components)
+     Layer 3: Component (Component-specific - for variants)
+     ============================================================ */
 
-    /* Champagne Gold */
-    --color-gold-50: 42 100% 97%;
-    --color-gold-100: 42 95% 92%;
-    --color-gold-200: 42 85% 85%;
-    --color-gold-300: 42 75% 75%;
-    --color-gold-400: 42 65% 65%;
-    --color-gold-500: 42 70% 60%;
-    --color-gold-600: 42 58% 48%;
-    --color-gold-700: 42 55% 38%;
-    --color-gold-800: 42 50% 28%;
-    --color-gold-900: 42 45% 22%;
-    --color-gold-950: 42 40% 12%;
+  /* ---------- PRIMITIVE TOKENS (Raw Brand Colors) ---------- */
+  /* Deep Black / Slate */
+  --color-slate-50: 210 40% 98%;
+  --color-slate-100: 210 40% 96%;
+  --color-slate-200: 214 32% 91%;
+  --color-slate-300: 213 27% 84%;
+  --color-slate-400: 215 20% 65%;
+  --color-slate-500: 215 16% 47%;
+  --color-slate-600: 215 19% 35%;
+  --color-slate-700: 215 25% 27%;
+  --color-slate-800: 217 33% 17%;
+  --color-slate-900: 222 47% 11%;
+  --color-slate-950: 224 71% 4%;
 
-    /* Success / Warning / Destructive */
-    --color-emerald-500: 160 84% 39%;
-    --color-emerald-600: 160 84% 32%;
-    --color-rose-500: 348 83% 47%;
-    --color-rose-600: 348 83% 40%;
-    --color-amber-500: 38 92% 50%;
+  /* Champagne Gold */
+  --color-gold-50: 42 100% 97%;
+  --color-gold-100: 42 95% 92%;
+  --color-gold-200: 42 85% 85%;
+  --color-gold-300: 42 75% 75%;
+  --color-gold-400: 42 65% 65%;
+  --color-gold-500: 42 70% 60%;
+  --color-gold-600: 42 58% 48%;
+  --color-gold-700: 42 55% 38%;
+  --color-gold-800: 42 50% 28%;
+  --color-gold-900: 42 45% 22%;
+  --color-gold-950: 42 40% 12%;
 
-    /* Fonts */
-    --font-heading: "Cormorant Garamond", serif;
-    --font-body: "Vazirmatn", "Vazir", "Montserrat", system-ui, sans-serif;
-    --font-persian: "Vazirmatn", "Vazir", system-ui, sans-serif;
+  /* Success / Warning / Destructive */
+  --color-emerald-500: 160 84% 39%;
+  --color-emerald-600: 160 84% 32%;
+  --color-rose-500: 348 83% 47%;
+  --color-rose-600: 348 83% 40%;
+  --color-amber-500: 38 92% 50%;
+
+  /* Typography System (Estedad for Display/Headings, Vazirmatn for Body/UI) */
+  --font-heading: var(--font-estedad, "Estedad"), "Estedad", system-ui, -apple-system, sans-serif;
+  --font-body: var(--font-vazirmatn, "Vazirmatn"), "Vazirmatn", system-ui, -apple-system, sans-serif;
+  --font-persian: var(--font-vazirmatn, "Vazirmatn"), "Vazirmatn", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-estedad, "Estedad"), "Estedad", system-ui, -apple-system, sans-serif;
 
     /* ---------- SEMANTIC TOKENS (Dark Mode - DEFAULT) ---------- */
     --background: var(--color-slate-950);
@@ -168,7 +257,6 @@
     --shadow-luxury-gold: 0 0 0 1px hsl(var(--color-gold-600) / 0.3), 0 4px 14px 0 hsl(var(--color-gold-600) / 0.2);
     --shadow-luxury-gold-lg: 0 0 0 1px hsl(var(--color-gold-600) / 0.4), 0 8px 30px 0 hsl(var(--color-gold-600) / 0.3);
   }
-}
 
 @layer base {
   * {
@@ -180,21 +268,25 @@
   body {
     @apply bg-background text-foreground font-body antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    line-height: 1.7;
+    letter-spacing: normal;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading font-semibold tracking-tight;
+    @apply font-heading font-bold;
+    letter-spacing: normal;
+    text-wrap: balance;
   }
 
   /* Persian number formatting */
-  .persian-nums {
+  .persian-nums, .font-tabular {
     font-variant-numeric: tabular-nums;
-    font-family: var(--font-persian);
+    font-feature-settings: "tnum" 1;
   }
 
-  /* RTL text improvements & Persian font standardization */
+  /* RTL text improvements & Persian typography standardization */
   [dir="rtl"] {
     text-align: right;
-    font-family: var(--font-persian), "Vazirmatn", "Vazir", system-ui, sans-serif;
+    font-family: var(--font-body), var(--font-vazirmatn), "Vazirmatn", system-ui, sans-serif;
   }
 
   [dir="rtl"] h1,
@@ -203,8 +295,9 @@
   [dir="rtl"] h4,
   [dir="rtl"] h5,
   [dir="rtl"] h6,
-  [dir="rtl"] .font-heading {
-    font-family: var(--font-persian), "Vazirmatn", "Vazir", system-ui, sans-serif;
+  [dir="rtl"] .font-heading,
+  [dir="rtl"] .font-display {
+    font-family: var(--font-heading), var(--font-estedad), "Estedad", system-ui, sans-serif;
     letter-spacing: normal;
   }
 }

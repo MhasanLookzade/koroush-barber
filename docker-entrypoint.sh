@@ -1,20 +1,21 @@
 #!/bin/sh
 set -e
 
-echo "=> [Koroush Barber] Starting container initialization..."
+echo "=================================================================="
+echo "  KOROUSH BARBER — CONTAINER INITIALIZATION"
+echo "=================================================================="
 
-# Run DB prepare and push schema
+# 1. Ensure Database Schema is in sync
 if [ -n "$DATABASE_URL" ]; then
-  echo "=> [Koroush Barber] Ensuring database schema is synced..."
+  echo "=> [Koroush Barber] Syncing database schema with PostgreSQL..."
   node scripts/prepare-db.js || true
   npx prisma db push --skip-generate || true
 fi
 
-# If SEED_DATABASE is set to "true", run database seed
-if [ "$SEED_DATABASE" = "true" ]; then
-  echo "=> [Koroush Barber] Running database seed..."
-  npx ts-node prisma/seed.ts || true
-fi
+# 2. Provision baseline configuration (services, working hours, settings, admin)
+# Note: prisma/seed.ts does NOT create any fake customer, appointment, or review records.
+echo "=> [Koroush Barber] Ensuring baseline configuration exists..."
+npx ts-node prisma/seed.ts || true
 
 echo "=> [Koroush Barber] Launching Next.js server on port ${PORT:-3000}..."
 exec node server.js

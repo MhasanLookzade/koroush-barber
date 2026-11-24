@@ -9,9 +9,9 @@ const path = require("path")
 const { execSync } = require("child_process")
 
 const schemaPath = path.join(__dirname, "..", "prisma", "schema.prisma")
-const databaseUrl = process.env.DATABASE_URL || "file:./dev.db"
+const databaseUrl = process.env.DATABASE_URL || "postgresql://koroush_user:koroush_secure_pass_2026@localhost:5432/koroush_barber?schema=public"
 
-const isPostgres = databaseUrl.startsWith("postgres://") || databaseUrl.startsWith("postgresql://")
+const isPostgres = !databaseUrl.startsWith("file:")
 const targetProvider = isPostgres ? "postgresql" : "sqlite"
 
 let schema = fs.readFileSync(schemaPath, "utf8")

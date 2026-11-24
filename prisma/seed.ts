@@ -216,70 +216,7 @@ async function main() {
     })
   }
 
-  // 6. Demo Customer & Appointment (for demonstration & verification)
-  const demoCustomer = await prisma.customer.upsert({
-    where: { phone: "09129876543" },
-    update: { 
-      name: "امیرحسین تهرانی",
-      birthDate: "1368/04/15"
-    },
-    create: {
-      name: "امیرحسین تهرانی",
-      phone: "09129876543",
-      email: "amir@example.ir",
-      birthDate: "1368/04/15"
-    },
-  })
-
-  // 7. Seed Authentic Approved Reviews
-  const initialReviews = [
-    {
-      id: "rev-1",
-      name: "دکتر امیرحسین کاظمی",
-      rating: 5,
-      comment: "برای من که به عنوان جراح زمانم بسیار محدود است، بزرگترین مزیت کوروش باربر این است که ساعت ۱۴:۰۰ نوبت دارم و دقیقاً ساعت ۱۴:۰۰ روی صندلی می‌نشینم، بدون حتی یک دقیقه معطلی. استایل فید هم دقیقاً مطابق فرم صورتم اجرا شد.",
-      trackingCode: "KB-98214",
-      isVerified: true,
-      status: "APPROVED",
-    },
-    {
-      id: "rev-2",
-      name: "مهندس نیما راد",
-      rating: 5,
-      comment: "بهترین تجربه اصلاحی که در تهران داشتم. آرامش محیط، حوله گرم معطر به اکالیپتوس، قهوه عالی و دقت وسواس‌گونه استاد کوروش روی تقارن خط ریش واقعاً کم‌نظیر است. سیستم رزرو آنلاین در کمتر از یک دقیقه نوبت را تایید کرد.",
-      trackingCode: "KB-84192",
-      isVerified: true,
-      status: "APPROVED",
-    },
-    {
-      id: "rev-3",
-      name: "فرزاد صبوری",
-      rating: 5,
-      comment: "من با تلفن‌های هوشمند خیلی راحت نیستم اما نوبت گرفتن از این سایت آنقدر فونت درشت و دکمه‌های واضحی داشت که خودم بدون کمک پسرم رزرو کردم. برخورد بسیار محترمانه پرسنل هم جای تقدیر دارد.",
-      trackingCode: "KB-77310",
-      isVerified: true,
-      status: "APPROVED",
-    },
-    {
-      id: "rev-4",
-      name: "سامان ابراهیمی",
-      rating: 5,
-      comment: "فید پوست و فرم‌دهی ریش فوق‌العاده بود. شفافیت قیمت و اینکه بیعانه را آنلاین پرداخت کردم و مابقی را در سالن تسویه کردم، حس امنیت و احترام بسیار بالایی به مشتری می‌دهد.",
-      trackingCode: "KB-65021",
-      isVerified: true,
-      status: "APPROVED",
-    },
-  ]
-
-  for (const rev of initialReviews) {
-    await prisma.review.upsert({
-      where: { id: rev.id },
-      update: rev,
-      create: rev,
-    })
-  }
-
-  console.log("✅ Seed completed successfully!")
+  console.log("✅ Baseline configuration seeded successfully (Zero customers, zero transactions).")
 }
 
 main()

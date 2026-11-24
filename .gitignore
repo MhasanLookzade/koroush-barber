@@ -10,8 +10,12 @@
 # Database files
 *.db
 *.db-journal
+*.sqlite
+*.sqlite3
 /prisma/*.db
 /prisma/*.db-journal
+/postgres_data/
+/pgdata/
 
 # Environment variables
 .env

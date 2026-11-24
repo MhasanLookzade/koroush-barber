@@ -45,7 +45,7 @@ interface BookingStudioProps {
 export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const searchParams = useSearchParams()
   const bookingContainerRef = useRef<HTMLDivElement>(null)
-  const isFirstMount = useRef(true)
+  const prevStepRef = useRef<number>(1)
 
   // 6 Sequential Steps:
   // 1: Service Selection
@@ -185,19 +185,18 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
     loadBackendServices()
   }, [])
 
-  // Smooth scroll repositioning on step transition
+  // Smooth scroll repositioning ONLY on actual step transition (never on initial mount)
   useEffect(() => {
-    if (isFirstMount.current) {
-      isFirstMount.current = false
-      return
-    }
+    if (prevStepRef.current !== currentStep) {
+      prevStepRef.current = currentStep
 
-    const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    if (bookingContainerRef.current) {
-      bookingContainerRef.current.scrollIntoView({
-        behavior: reducedMotion ? "auto" : "smooth",
-        block: "start",
-      })
+      const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      if (bookingContainerRef.current) {
+        bookingContainerRef.current.scrollIntoView({
+          behavior: reducedMotion ? "auto" : "smooth",
+          block: "start",
+        })
+      }
     }
   }, [currentStep])
 

@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { getPaymentGateway } from "@/lib/providers/payment"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit(`pay_${ip}`, 10, 60000)
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "تعداد درخواست‌های پرداخت بیش از حد مجاز است. لطفاً کمی صبر فرمایید." },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { appointmentId } = body
 
@@ -30,6 +40,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "این نوبت قبلاً تایید و پرداخت شده است" },
         { status: 400 }
+      )
+    }
+
+    // Revalidate: Check if another appointment has confirmed this slot
+    const collision = await prisma.appointment.findFirst({
+      where: {
+        barberId: appointment.barberId,
+        date: appointment.date,
+        status: { in: ["CONFIRMED", "COMPLETED"] },
+        id: { not: appointment.id },
+      },
+    })
+    if (collision) {
+      return NextResponse.json(
+        { error: "این بازه زمانی هم‌اکنون توسط کاربر دیگری رزرو قطعی شده است." },
+        { status: 409 }
       )
     }
 

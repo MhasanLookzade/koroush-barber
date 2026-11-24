@@ -74,7 +74,7 @@ function LoginForm() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} action="#" method="POST" className="space-y-4">
           <div className="space-y-1.5">
             <label htmlFor="admin-username" className="text-xs sm:text-sm font-medium text-[#A8A39A] block">
               نام کاربری:

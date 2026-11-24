@@ -6,7 +6,9 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request)
-    const rateCheck = checkRateLimit(`login_${ip}`, 8, 15 * 60 * 1000)
+    const isLocalhost = ip === "127.0.0.1" || ip === "::1" || ip === "localhost"
+    const maxAttempts = isLocalhost && process.env.NODE_ENV !== "production" ? 100 : 8
+    const rateCheck = checkRateLimit(`login_${ip}`, maxAttempts, 15 * 60 * 1000)
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: "تعداد تلاش‌های ناموفق بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر مجدداً تلاش فرمایید." },

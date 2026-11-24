@@ -395,7 +395,7 @@ function BookingStatusContent() {
           <CardContent className="p-6 sm:p-8">
             {/* TAB 1: CODE LOOKUP */}
             {activeTab === "code" && (
-              <form onSubmit={handleCodeSubmit} className="space-y-4">
+              <form onSubmit={handleCodeSubmit} action="#" method="POST" className="space-y-4">
                 <div className="space-y-2 text-right">
                   <label htmlFor="track-code-input" className="text-xs sm:text-sm font-semibold text-[#A8A39A] block">
                     کد پیگیری اختصاصی نوبت را وارد فرمایید:

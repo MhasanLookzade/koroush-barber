@@ -86,3 +86,26 @@ export function generateTrackingCode(): string {
   const num = Math.floor(10000 + crypto.randomInt(90000))
   return `KB-${num}`
 }
+
+/**
+ * Mask Iranian phone number for safe display (anti-scraping)
+ * e.g. "09123456789" -> "0912***6789"
+ */
+export function maskPhone(phone: string): string {
+  if (!phone || phone.length < 8) return phone
+  return phone.slice(0, 4) + "***" + phone.slice(-4)
+}
+
+/**
+ * Mask customer name for privacy in public status responses
+ * e.g. "علیرضا محمدی" -> "علیرضا م***"
+ */
+export function maskCustomerName(name: string): string {
+  if (!name) return ""
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) {
+    const n = parts[0]
+    return n.length > 2 ? n[0] + "***" + n.slice(-1) : n[0] + "*"
+  }
+  return parts[0] + " " + parts.slice(1).map((p) => (p.length > 0 ? p[0] + "***" : "")).join(" ")
+}

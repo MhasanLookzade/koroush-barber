@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { authorizeAdmin } from "@/lib/admin-auth"
+
+export const dynamic = "force-dynamic"
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { endpoint: string } }
 ) {
+  const auth = authorizeAdmin(request)
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const { endpoint } = params
     const setting = await prisma.siteSetting.findUnique({
@@ -30,6 +38,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { endpoint: string } }
 ) {
+  const auth = authorizeAdmin(request, "OWNER")
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const { endpoint } = params
     const body = await request.json()

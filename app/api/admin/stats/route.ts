@@ -1,7 +1,15 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { authorizeAdmin } from "@/lib/admin-auth"
 
-export async function GET() {
+export const dynamic = "force-dynamic"
+
+export async function GET(request: NextRequest) {
+  const auth = authorizeAdmin(request)
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const now = new Date()
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)

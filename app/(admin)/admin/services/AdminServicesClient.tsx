@@ -215,14 +215,18 @@ export function AdminServicesClient() {
               </div>
 
               <div className="mt-6 pt-4 border-t border-[#2D332F] space-y-3">
-                <div className="flex justify-between items-center text-xs">
+                <div className="grid grid-cols-3 gap-2 text-xs text-center bg-[#101311] p-2.5 rounded-xl border border-[#222724]">
                   <div>
-                    <span className="text-[#A8A39A] block text-[10px]">مبلغ کل:</span>
-                    <span className="font-bold text-sm text-[#F5F1E8]">{formatToman(srv.price)}</span>
+                    <span className="text-[#8C8477] block text-[10px]">مبلغ کل:</span>
+                    <strong className="text-xs text-[#F7F4EE]">{formatToman(srv.price)}</strong>
                   </div>
-                  <div className="text-left">
-                    <span className="text-[#A8A39A] block text-[10px]">بیعانه قابل پرداخت:</span>
-                    <span className="font-bold text-sm text-[#C8A96B]">{formatToman(srv.depositPrice)}</span>
+                  <div>
+                    <span className="text-[#8C8477] block text-[10px]">بیعانه:</span>
+                    <strong className="text-xs text-[#E4C88E]">{formatToman(srv.depositPrice)}</strong>
+                  </div>
+                  <div>
+                    <span className="text-[#8C8477] block text-[10px]">مانده در سالن:</span>
+                    <span className="text-xs text-[#A89E90]">{formatToman(Math.max(0, srv.price - srv.depositPrice))}</span>
                   </div>
                 </div>
 

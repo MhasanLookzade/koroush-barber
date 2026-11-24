@@ -17,6 +17,8 @@ import {
   MessageSquare,
   X,
   ExternalLink,
+  Cake,
+  Send,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect } from "react"
@@ -28,6 +30,8 @@ const navItems = [
   { href: "/admin/availability", label: "ساعات کاری و مسدودی", icon: Clock },
   { href: "/admin/services", label: "خدمات و تعرفه‌ها", icon: Scissors },
   { href: "/admin/customers", label: "دایرکتوری مشتریان", icon: Users },
+  { href: "/admin/birthdays", label: "تولد مشتریان", icon: Cake },
+  { href: "/admin/sms", label: "مرکز پیامک‌ها", icon: Send },
   { href: "/admin/reviews", label: "نظرات مراجعان", icon: MessageSquare },
   { href: "/admin/payments", label: "گزارش مالی و تراکنش‌ها", icon: CreditCard },
   { href: "/admin/settings", label: "تنظیمات سالن", icon: Settings },

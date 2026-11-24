@@ -127,7 +127,7 @@ const galleryImages: GalleryItem[] = [
   },
   {
     id: 11,
-    src: "https://images.unsplash.com/photo-1601043288522-2b7bde5d4c7c?w=1000&h=800&fit=crop",
+    src: "/images/gallery-4.svg",
     alt: "رزرو آنلاین آسان و سریع",
     category: "interior",
     title: "رزرو آنلاین آسان و سریع",
@@ -135,11 +135,11 @@ const galleryImages: GalleryItem[] = [
   },
   {
     id: 12,
-    src: "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=1000&h=800&fit=crop",
-    alt: "استیشن پیرایش تمیز و استریل",
+    src: "/images/gallery-6.svg",
+    alt: "قیمت‌گذاری شفاف خدمات",
     category: "interior",
-    title: "استیشن‌های مجهز به استریل UV",
-    description: "ضدعفونی کلیه شانه و قیچی‌ها جلوی چشمان مشتری قبل از هر سرویس.",
+    title: "قیمت‌گذاری شفاف خدمات",
+    description: "پیش از رزرو، هزینه کامل خدمات، مبلغ بیعانه و مانده قابل پرداخت رو به‌صورت واضح مشاهده کن.",
   },
 
   // Before/After

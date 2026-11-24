@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -14,7 +14,6 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldCheck,
-  Sparkles,
   Lock,
   User,
   Timer,
@@ -22,8 +21,12 @@ import {
   Printer,
   CalendarCheck,
   Check,
+  Receipt,
+  X,
+  Edit3,
 } from "lucide-react"
 import { formatToman, toPersianDigits, getJalaliDate, getTehranDateString } from "@/lib/jalali"
+import { normalizeIranianPhone, isValidIranianPhone } from "@/lib/providers/sms"
 import { HOMEPAGE_SERVICES, ServiceItem } from "./ServicesSection"
 import { JalaliBirthDatePicker } from "@/components/booking/JalaliBirthDatePicker"
 
@@ -41,21 +44,24 @@ interface BookingStudioProps {
 
 export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const searchParams = useSearchParams()
+  const bookingContainerRef = useRef<HTMLDivElement>(null)
+  const isFirstMount = useRef(true)
 
   // 6 Sequential Steps:
   // 1: Service Selection
   // 2: Date Selection
   // 3: Time Slot Selection
-  // 4: Customer Details & OTP Verification
-  // 5: Invoice Summary & 20% Deposit Payment
-  // 6: Final Booking Confirmation
+  // 4: Customer Details (OTP-Free)
+  // 5: Phone Confirmation & Invoice Summary (Deposit Checkout)
+  // 6: Final Booking Confirmation (Verified by Server)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1)
 
   // Service State (Step 1)
-  const [services] = useState<ServiceItem[]>(HOMEPAGE_SERVICES)
+  const [services, setServices] = useState<ServiceItem[]>(HOMEPAGE_SERVICES)
   const [selectedService, setSelectedService] = useState<ServiceItem>(() => {
     return HOMEPAGE_SERVICES.find((s) => s.id === initialServiceId) || HOMEPAGE_SERVICES[0]
   })
+  const [showPricingModal, setShowPricingModal] = useState(false)
 
   // Date State (Step 2)
   const [selectedDateStr, setSelectedDateStr] = useState<string>(getTehranDateString())
@@ -67,16 +73,12 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const [closedReason, setClosedReason] = useState<string>("")
   const [slotsLoading, setSlotsLoading] = useState(false)
 
-  // Customer & OTP State (Step 4)
+  // Customer State (Step 4 - OTP Removed)
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
   const [customerEmail, setCustomerEmail] = useState("")
   const [customerBirthDate, setCustomerBirthDate] = useState<string | null>(null)
-  const [otpCode, setOtpCode] = useState("")
-  const [isOtpSent, setIsOtpSent] = useState(false)
-  const [isPhoneVerified, setIsPhoneVerified] = useState(false)
-  const [otpTimer, setOtpTimer] = useState(0)
-  const [devCode, setDevCode] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
 
   // Hold & Invoice State (Step 5)
   const [holdDetails, setHoldDetails] = useState<{
@@ -102,64 +104,83 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
     balanceDue: number
   } | null>(null)
 
-  // Status & Feedback
+  // Global Status
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
-  // Check URL parameters for confirmed booking on mount
+  // Check URL query for direct service pre-selection
   useEffect(() => {
-    const trackingCode = searchParams?.get("trackingCode")
-    const confirmed = searchParams?.get("confirmed")
-    if (trackingCode && confirmed) {
-      setConfirmedBooking({
-        trackingCode,
-        serviceName: selectedService.name,
-        dateStr: selectedDateStr,
-        timeStr: selectedTime || "14:00",
-        customerName: customerName || "مشتری محترم",
-        depositAmount: selectedService.depositPrice,
-        balanceDue: selectedService.price - selectedService.depositPrice,
-      })
-      setCurrentStep(6)
+    const sId = searchParams.get("service")
+    if (sId) {
+      const match = services.find((s) => s.id === sId)
+      if (match) setSelectedService(match)
     }
-  }, [searchParams])
+  }, [searchParams, services])
 
-  // Fetch Slots when Date changes (Step 2 -> Step 3)
+  // Try fetching live services from backend
+  useEffect(() => {
+    async function loadBackendServices() {
+      try {
+        const res = await fetch("/api/booking/services")
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data) && data.length > 0) {
+            setServices(data)
+          }
+        }
+      } catch {
+        // Fallback to HOMEPAGE_SERVICES
+      }
+    }
+    loadBackendServices()
+  }, [])
+
+  // Smooth scroll repositioning on step transition
+  useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      return
+    }
+
+    const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    if (bookingContainerRef.current) {
+      bookingContainerRef.current.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "start",
+      })
+    }
+  }, [currentStep])
+
+  // Fetch Available Slots on Date Change (Step 3)
   useEffect(() => {
     async function loadSlots() {
       if (!selectedDateStr) return
       try {
         setSlotsLoading(true)
-        setError(null)
-        const res = await fetch(`/api/booking/availability?date=${selectedDateStr}`)
-        if (!res.ok) throw new Error("خطا در دریافت زمان‌های خالی سالن")
-        const data = await res.json()
-        setIsClosed(data.isClosed)
-        setClosedReason(data.closedReason || "")
-        setAvailableSlots(data.slots || [])
+        setSelectedTime(null)
+        setIsClosed(false)
+        setClosedReason("")
 
-        if (selectedTime) {
-          const stillValid = data.slots?.some((s: Slot) => s.time === selectedTime && s.isAvailable)
-          if (!stillValid) setSelectedTime(null)
+        const res = await fetch(`/api/booking/availability?date=${selectedDateStr}`)
+        if (!res.ok) throw new Error("خطا در استعلام نوبت‌های خالی")
+
+        const data = await res.json()
+        if (data.isClosed) {
+          setIsClosed(true)
+          setClosedReason(data.closedReason || "سالن در این تاریخ تعطیل است")
+          setAvailableSlots([])
+        } else {
+          setAvailableSlots(data.slots || [])
         }
-      } catch {
-        setError("خطا در محاسبه ظرفیت نوبت‌ها. لطفاً دوباره تلاش کنید.")
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "امکان دریافت نوبت‌های این روز نیست")
       } finally {
         setSlotsLoading(false)
       }
     }
     loadSlots()
   }, [selectedDateStr])
-
-  // OTP Countdown Timer
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (otpTimer > 0) {
-      interval = setInterval(() => setOtpTimer((t) => t - 1), 1000)
-    }
-    return () => clearInterval(interval)
-  }, [otpTimer])
 
   // Hold Timer (Step 5)
   useEffect(() => {
@@ -179,65 +200,49 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
     return () => clearInterval(interval)
   }, [currentStep, holdRemainingSeconds])
 
-  // 1. Send OTP
-  const handleSendOtp = async () => {
+  // Handle Step 4 validation (No OTP required)
+  const handleProceedToInvoice = () => {
     setError(null)
-    setSuccessMsg(null)
-    if (!customerPhone || customerPhone.trim().length < 10) {
-      setError("لطفاً شماره تلفن همراه معتبر (مثال: ۰۹۱۲۳۴۵۶۷۸۹) را وارد کنید")
+    setPhoneError(null)
+
+    if (!customerName || customerName.trim().length < 3) {
+      setError("لطفاً نام و نام خانوادگی خود را کامل وارد کنید (حداقل ۳ حرف)")
       return
     }
 
-    try {
-      setLoading(true)
-      const res = await fetch("/api/booking/otp/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: customerPhone }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "خطا در ارسال پیامک کد تایید")
-
-      setIsOtpSent(true)
-      setOtpTimer(120)
-      if (data.devCode) {
-        setDevCode(data.devCode)
-        setOtpCode(data.devCode)
-      }
-      setSuccessMsg("کد تایید ۶ رقمی به شماره شما ارسال شد.")
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "خطای ناشناخته در ارسال پیامک")
-    } finally {
-      setLoading(false)
+    const normalizedPhone = normalizeIranianPhone(customerPhone)
+    if (!isValidIranianPhone(normalizedPhone)) {
+      setPhoneError("شماره همراه نامعتبر است. نمونه صحیح: ۰۹۱۲۳۴۵۶۷۸۹")
+      setError("لطفاً یک شماره تلفن همراه معتبر ۱۱ رقمی وارد نمایید")
+      return
     }
+
+    // Save normalized phone and proceed directly to Step 5
+    setCustomerPhone(normalizedPhone)
+    setCurrentStep(5)
   }
 
-  // 2. Verify OTP & Reserve Hold for Step 5
-  const handleVerifyOtpAndProceed = async () => {
+  // Handle Confirmed Payment Initiation (Step 5)
+  const handleProceedToPayment = async () => {
     setError(null)
-    setSuccessMsg(null)
-    if (!customerName || customerName.trim().length < 3) {
-      setError("لطفاً نام و نام خانوادگی خود را کامل وارد کنید")
+
+    const normalizedPhone = normalizeIranianPhone(customerPhone)
+    if (!isValidIranianPhone(normalizedPhone)) {
+      setError("شماره همراه معتبر نیست. لطفاً شماره را ویرایش فرمایید.")
+      setCurrentStep(4)
       return
     }
-    if (!otpCode || otpCode.trim().length !== 6) {
-      setError("لطفاً کد تایید ۶ رقمی پیامک شده را وارد کنید")
+
+    if (!selectedTime || !selectedService) {
+      setError("زمان یا خدمت نامعتبر است.")
+      setCurrentStep(1)
       return
     }
 
     try {
       setLoading(true)
-      const res = await fetch("/api/booking/otp/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: customerPhone, code: otpCode }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "کد تایید اشتباه است")
 
-      setIsPhoneVerified(true)
-
-      // Hold reservation for 10 minutes
+      // 1. Create or renew slot hold in database (atomic 10-minute hold)
       const holdRes = await fetch("/api/booking/hold", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -245,65 +250,62 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
           serviceId: selectedService.id,
           dateStr: selectedDateStr,
           timeStr: selectedTime,
-          customerName,
-          customerPhone,
-          customerEmail,
-          customerBirthDate,
+          customerName: customerName.trim(),
+          customerPhone: normalizedPhone,
+          customerEmail: customerEmail.trim() || undefined,
+          customerBirthDate: customerBirthDate || undefined,
         }),
       })
+
       const holdData = await holdRes.json()
       if (!holdRes.ok) {
-        throw new Error(holdData.error || "این بازه زمانی هم‌اکنون توسط فرد دیگری رزرو شد")
+        throw new Error(holdData.error || "این بازه زمانی هم‌اکنون توسط فرد دیگری در حال رزرو است")
       }
 
       setHoldDetails(holdData)
       setHoldRemainingSeconds(600)
-      setCurrentStep(5)
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "خطا در تایید کد و قفل نوبت")
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  // 3. Initiate Gateway Payment
-  const handleProceedToPayment = async () => {
-    setError(null)
-    if (!holdDetails?.appointmentId) {
-      setError("نوبت شما منقضی شده است. لطفاً زمان را دوباره انتخاب کنید.")
-      setCurrentStep(3)
-      return
-    }
-
-    try {
-      setLoading(true)
+      // 2. Request payment gateway URL for this held appointment
       const payRes = await fetch("/api/booking/pay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appointmentId: holdDetails.appointmentId }),
+        body: JSON.stringify({ appointmentId: holdData.appointmentId }),
       })
-      const payData = await payRes.json()
-      if (!payRes.ok) throw new Error(payData.error || "خطا در اتصال به درگاه بانکی")
 
+      const payData = await payRes.json()
+      if (!payRes.ok) {
+        throw new Error(payData.error || "خطا در اتصال به درگاه پرداخت بانکی")
+      }
+
+      // 3. Redirect customer to payment gateway
       window.location.href = payData.redirectUrl
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "خطا در هدایت به درگاه پرداخت")
+      setError(err instanceof Error ? err.message : "خطا در برقراری ارتباط با درگاه پرداخت")
     } finally {
       setLoading(false)
     }
   }
 
-  // Reset to book new appointment
+  // Reset booking process
   const handleReset = () => {
     setCurrentStep(1)
     setSelectedTime(null)
-    setOtpCode("")
-    setIsOtpSent(false)
-    setIsPhoneVerified(false)
     setHoldDetails(null)
     setConfirmedBooking(null)
     setError(null)
     setSuccessMsg(null)
+    setPhoneError(null)
+  }
+
+  // Format masked phone number for Step 5 confirmation (e.g. ۰۹۱۲•••۱۲۳۴)
+  const getMaskedPhone = (phone: string) => {
+    const norm = normalizeIranianPhone(phone)
+    if (norm.length === 11) {
+      const prefix = toPersianDigits(norm.slice(0, 4))
+      const suffix = toPersianDigits(norm.slice(7))
+      return `${prefix}•••${suffix}`
+    }
+    return toPersianDigits(phone)
   }
 
   // 7 Days Quick Strip
@@ -331,7 +333,12 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const selectedDayObj = upcomingDays.find((d) => d.dateStr === selectedDateStr)
 
   return (
-    <section id="booking" className="py-20 sm:py-24 bg-[#0F1210] relative overflow-hidden" dir="rtl">
+    <section
+      id="booking"
+      ref={bookingContainerRef}
+      className="py-20 sm:py-24 bg-[#0F1210] relative overflow-hidden scroll-mt-24 sm:scroll-mt-28"
+      dir="rtl"
+    >
       {/* Background radial accent */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] sm:w-[500px] sm:h-[500px] lg:w-[700px] lg:h-[700px] rounded-full bg-[#C8A96B]/5 blur-[100px] sm:blur-[160px] pointer-events-none max-w-full" />
 
@@ -341,7 +348,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         <div className="text-center max-w-3xl mx-auto space-y-4 mb-10 sm:mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#181D1A] border border-[#C8A96B]/30 text-xs sm:text-sm font-semibold text-[#E4C88E]">
             <Clock className="w-3.5 h-3.5 text-[#C8A96B]" />
-            <span>رزرو آنلاین نوبت در ۶۰ ثانیه</span>
+            <span>رزرو آنلاین سریع و بدون پیچیدگی</span>
           </div>
 
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-tight">
@@ -349,7 +356,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
           </h2>
 
           <p className="text-sm sm:text-base text-[#C5BDB2]">
-            فرایند منظم ۶ مرحله‌ای برای انتخاب دقیق خدمت، روز، ساعت و پرداخت امن بیعانه با تایید پیامکی آنی.
+            نوبت دلخواه خود را در چند مرحله کوتاه انتخاب کنید و با پرداخت بیعانه، رزرواسیون را نهایی فرمایید.
           </p>
         </div>
 
@@ -361,9 +368,9 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
               { num: 1, label: "انتخاب خدمت", shortLabel: "خدمت", icon: Scissors },
               { num: 2, label: "انتخاب روز", shortLabel: "روز", icon: Calendar },
               { num: 3, label: "انتخاب ساعت", shortLabel: "ساعت", icon: Clock },
-              { num: 4, label: "اطلاعات مراجع", shortLabel: "مشخصات", icon: Phone },
-              { num: 5, label: "پیش‌فاکتور", shortLabel: "بیعانه", icon: CreditCard },
-              { num: 6, label: "تأیید نهایی", shortLabel: "تأیید", icon: CheckCircle2 },
+              { num: 4, label: "اطلاعات مراجع", shortLabel: "مشخصات", icon: User },
+              { num: 5, label: "تأیید و بیعانه", shortLabel: "بیعانه", icon: CreditCard },
+              { num: 6, label: "تأیید نهایی", shortLabel: "رسید", icon: CheckCircle2 },
             ].map((step) => {
               const isCompleted = currentStep > step.num
               const isCurrent = currentStep === step.num
@@ -422,7 +429,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         <div className="bg-[#141715] rounded-3xl p-5 sm:p-8 lg:p-10 border border-[#262D29] shadow-2xl min-h-[480px] flex flex-col justify-between">
           <AnimatePresence mode="wait">
             
-            {/* STEP 1: SERVICE SELECTION (All 8 Services) */}
+            {/* STEP 1: SERVICE SELECTION */}
             {currentStep === 1 && (
               <motion.div
                 key="step1"
@@ -432,13 +439,25 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                 transition={{ duration: 0.25 }}
                 className="space-y-6"
               >
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-heading font-bold text-[#F7F4EE]">
-                    مرحله ۱: انتخاب خدمت تخصصی
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#A89E90] mt-1">
-                    خدمت مدنظر خود را انتخاب فرمایید. تمامی نوبت‌ها با تخصیص زمان اختصاصی ۶۰ دقیقه و پذیرایی انجام می‌شود.
-                  </p>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-heading font-bold text-[#F7F4EE]">
+                      مرحله ۱: انتخاب خدمت تخصصی
+                    </h3>
+                    <p className="text-xs sm:text-sm text-[#A89E90] mt-1">
+                      خدمت مدنظر خود را انتخاب فرمایید. تمامی نوبت‌ها با تخصیص زمان اختصاصی ۶۰ دقیقه انجام می‌شود.
+                    </p>
+                  </div>
+
+                  {/* Relocated Tariff Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowPricingModal(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-[#E4C88E] bg-[#181D1A] hover:bg-[#222924] border border-[#C8A96B]/30 hover:border-[#C8A96B] transition-all self-start sm:self-auto min-h-[44px] cursor-pointer"
+                  >
+                    <Receipt className="w-4 h-4 text-[#C8A96B]" />
+                    <span>مشاهده تعرفه کامل خدمات</span>
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
@@ -590,7 +609,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
               </motion.div>
             )}
 
-            {/* STEP 3: TIME SLOT SELECTION (10:00 to 23:00) */}
+            {/* STEP 3: TIME SLOT SELECTION */}
             {currentStep === 3 && (
               <motion.div
                 key="step3"
@@ -693,7 +712,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
               </motion.div>
             )}
 
-            {/* STEP 4: CUSTOMER DETAILS & OTP VERIFICATION */}
+            {/* STEP 4: CUSTOMER DETAILS (NO OTP REQUIRED) */}
             {currentStep === 4 && (
               <motion.div
                 key="step4"
@@ -705,17 +724,20 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
               >
                 <div className="text-center space-y-1">
                   <h3 className="text-xl sm:text-2xl font-heading font-bold text-[#F7F4EE]">
-                    مرحله ۴: مشخصات مراجع و تایید شماره
+                    مرحله ۴: مشخصات مراجع محترم
                   </h3>
                   <p className="text-xs sm:text-sm text-[#A89E90]">
-                    کد تایید پیامکی برای اعتبارسنجی نوبت و ارسال جزئیات به شماره شما ارسال می‌شود.
+                    برای نهایی‌سازی رزرو، نام و شماره تلفن همراه خود را وارد فرمایید (بدون نیاز به کد پیامکی).
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   {/* Name Input */}
                   <div className="space-y-1.5 text-right">
-                    <label className="text-xs font-semibold text-[#C5BDB2]">نام و نام خانوادگی:</label>
+                    <label className="text-xs font-semibold text-[#C5BDB2] flex items-center gap-1">
+                      <span>نام و نام خانوادگی</span>
+                      <span className="text-[#C8A96B]">*</span>
+                    </label>
                     <div className="relative">
                       <User className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8C8477]" />
                       <input
@@ -723,35 +745,38 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
                         placeholder="مثال: کوروش آریافر"
-                        className="w-full pr-12 pl-4 py-3.5 rounded-xl bg-[#101311] border border-[#2B332F] text-[#F7F4EE] placeholder-[#5C5549] focus:outline-none focus:border-[#C8A96B] text-base"
+                        className="w-full pr-12 pl-4 py-3.5 rounded-xl bg-[#101311] border border-[#2B332F] text-[#F7F4EE] placeholder-[#5C5549] focus:outline-none focus:border-[#C8A96B] text-base min-h-[48px]"
                       />
                     </div>
                   </div>
 
-                  {/* Phone Input */}
+                  {/* Phone Input with immediate feedback */}
                   <div className="space-y-1.5 text-right">
-                    <label className="text-xs font-semibold text-[#C5BDB2]">شماره تلفن همراه:</label>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <div className="relative flex-1">
-                        <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8C8477]" />
-                        <input
-                          type="tel"
-                          dir="ltr"
-                          value={customerPhone}
-                          onChange={(e) => setCustomerPhone(e.target.value)}
-                          placeholder="09123456789"
-                          className="w-full pr-12 pl-4 py-3.5 rounded-xl bg-[#101311] border border-[#2B332F] text-[#F7F4EE] placeholder-[#5C5549] focus:outline-none focus:border-[#C8A96B] text-base font-mono min-h-[44px]"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        disabled={loading || otpTimer > 0}
-                        onClick={handleSendOtp}
-                        className="w-full sm:w-auto px-5 py-3.5 rounded-xl bg-[#202723] hover:bg-[#2B3530] text-[#E4C88E] border border-[#C8A96B]/40 font-semibold text-xs sm:text-sm shrink-0 disabled:opacity-50 cursor-pointer min-h-[44px] flex items-center justify-center"
-                      >
-                        {otpTimer > 0 ? `${formatTimer(otpTimer)} تا ارسال مجدد` : isOtpSent ? "ارسال دوباره کد" : "ارسال پیامک کد"}
-                      </button>
+                    <label className="text-xs font-semibold text-[#C5BDB2] flex items-center gap-1">
+                      <span>شماره تلفن همراه (جهت ارسال پیامک تایید و هماهنگی)</span>
+                      <span className="text-[#C8A96B]">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8C8477]" />
+                      <input
+                        type="tel"
+                        dir="ltr"
+                        value={customerPhone}
+                        onChange={(e) => {
+                          setCustomerPhone(e.target.value)
+                          if (phoneError) setPhoneError(null)
+                        }}
+                        placeholder="09123456789"
+                        className={`w-full pr-12 pl-4 py-3.5 rounded-xl bg-[#101311] border text-[#F7F4EE] placeholder-[#5C5549] focus:outline-none text-base font-mono min-h-[48px] ${
+                          phoneError ? "border-red-500 focus:border-red-400" : "border-[#2B332F] focus:border-[#C8A96B]"
+                        }`}
+                      />
                     </div>
+                    {phoneError ? (
+                      <p className="text-xs text-red-400 mt-1">{phoneError}</p>
+                    ) : (
+                      <p className="text-[11px] text-[#7E776C] mt-1">شماره‌های ایرانی به صورت ۰۹۱۲۳۴۵۶۷۸۹ معتبر هستند.</p>
+                    )}
                   </div>
 
                   {/* Optional Date of Birth */}
@@ -761,36 +786,6 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                       onChange={setCustomerBirthDate}
                     />
                   </div>
-
-                  {/* Dev Sandbox Code Pill */}
-                  {devCode && (
-                    <div className="p-3 rounded-xl bg-[#1D2420] border border-[#C8A96B]/40 flex items-center justify-between text-xs text-[#E4C88E]">
-                      <span>کد آزمایشی سیستم: <strong className="font-mono text-sm">{devCode}</strong></span>
-                      <button
-                        type="button"
-                        onClick={() => setOtpCode(devCode)}
-                        className="px-2.5 py-1 rounded bg-[#C8A96B] text-[#0D0F0E] font-bold min-h-[32px]"
-                      >
-                        درج خودکار
-                      </button>
-                    </div>
-                  )}
-
-                  {/* OTP Code Input */}
-                  {isOtpSent && (
-                    <div className="space-y-1.5 text-right animate-fadeIn">
-                      <label className="text-xs font-semibold text-[#C5BDB2]">کد تایید ۶ رقمی پیامک شده:</label>
-                      <input
-                        type="text"
-                        dir="ltr"
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value)}
-                        placeholder="123456"
-                        className="w-full px-4 py-3.5 rounded-xl bg-[#101311] border border-[#C8A96B] text-center text-[#F7F4EE] text-2xl tracking-[0.4em] font-mono focus:outline-none min-h-[44px]"
-                      />
-                    </div>
-                  )}
                 </div>
 
                 {/* Actions */}
@@ -806,18 +801,17 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
 
                   <button
                     type="button"
-                    disabled={loading || !customerName || !otpCode}
-                    onClick={handleVerifyOtpAndProceed}
-                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] disabled:opacity-40 hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                    onClick={handleProceedToInvoice}
+                    className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                   >
-                    <span>{loading ? "در حال بررسی..." : "تایید و مشاهده پیش‌فاکتور"}</span>
+                    <span>ادامه به تایید پیش‌فاکتور</span>
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {/* STEP 5: INVOICE & 20% DEPOSIT CHECKOUT */}
+            {/* STEP 5: PRE-PAYMENT PHONE CONFIRMATION & INVOICE */}
             {currentStep === 5 && (
               <motion.div
                 key="step5"
@@ -829,21 +823,43 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
               >
                 <div>
                   <h3 className="text-xl sm:text-2xl font-heading font-bold text-[#F7F4EE]">
-                    مرحله ۵: پیش‌فاکتور رسمی و پرداخت بیعانه
+                    مرحله ۵: تایید مشخصات و پرداخت بیعانه
                   </h3>
                   <p className="text-xs sm:text-sm text-[#A89E90] mt-1">
-                    نوبت برای ۱۰ دقیقه برای شما رزرو موقت شده است تا پرداخت بیعانه را تکمیل نمایید.
+                    پیش از هدایت به درگاه پرداخت شاپرک، لطفاً صحت اطلاعات و شماره تماس خود را بررسی فرمایید.
                   </p>
                 </div>
 
-                {/* Hold Timer Alert */}
-                <div className="p-4 rounded-2xl bg-[#1F2622] border border-[#C8A96B]/50 flex items-center justify-between text-xs sm:text-sm">
-                  <div className="flex items-center gap-2.5 text-[#E4C88E]">
-                    <Timer className="w-5 h-5 animate-pulse" />
-                    <span>مهلت تکمیل پرداخت بیعانه:</span>
+                {/* REQUIRED PHONE CONFIRMATION BLOCK */}
+                <div className="p-5 sm:p-6 rounded-2xl bg-[#171D19] border-2 border-[#C8A96B]/50 shadow-lg space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#C8A96B]/20 text-[#E4C88E] flex items-center justify-center shrink-0">
+                      <Phone className="w-5 h-5 text-[#E4C88E]" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-[#F7F4EE]">تأیید شماره تماس مراجع</h4>
+                      <p className="text-xs text-[#C5BDB2] mt-0.5">
+                        پیامک تأیید رزرو و جزئیات نوبت به شماره زیر ارسال خواهد شد:
+                      </p>
+                    </div>
                   </div>
-                  <div className="font-mono text-base font-bold text-[#E4C88E]" dir="ltr">
-                    {formatTimer(holdRemainingSeconds)}
+
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-[#101311] border border-[#262D29]">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-[#8C8477]">شماره ثبت شده:</span>
+                      <strong className="text-xl sm:text-2xl font-black font-mono text-[#E4C88E] tracking-wider" dir="ltr">
+                        {getMaskedPhone(customerPhone)}
+                      </strong>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(4)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-[#C5BDB2] bg-[#1E2420] hover:bg-[#2B352E] hover:text-[#F7F4EE] border border-[#2B332F] transition-all cursor-pointer min-h-[40px]"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-[#C8A96B]" />
+                      <span>ویرایش شماره</span>
+                    </button>
                   </div>
                 </div>
 
@@ -874,7 +890,6 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   {/* Customer Info */}
                   <div className="p-3 rounded-xl bg-[#161A18] border border-[#222724] text-xs space-y-1">
                     <div className="text-[#8C8477]">مراجعه‌کننده: <strong className="text-[#F7F4EE]">{customerName}</strong></div>
-                    <div className="text-[#8C8477]">شماره تماس: <strong className="text-[#F7F4EE] font-mono" dir="ltr">{customerPhone}</strong></div>
                     {customerBirthDate && (
                       <div className="text-[#8C8477]">تاریخ تولد: <strong className="text-[#E4C88E] font-mono">{toPersianDigits(customerBirthDate)}</strong></div>
                     )}
@@ -912,25 +927,25 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   </span>
                 </label>
 
-                {/* Checkout CTA */}
+                {/* Checkout CTA Buttons */}
                 <div className="pt-4 flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-3">
                   <button
                     type="button"
-                    onClick={() => setCurrentStep(3)}
-                    className="w-full sm:w-auto px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] cursor-pointer min-h-[44px] flex items-center justify-center"
+                    onClick={() => setCurrentStep(4)}
+                    className="w-full sm:w-auto px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl text-sm font-semibold text-[#C5BDB2] bg-[#1A1F1C] hover:bg-[#252C28] border border-[#2B332F] cursor-pointer min-h-[48px] flex items-center justify-center"
                   >
-                    تغییر زمان یا خدمت
+                    ویرایش مشخصات
                   </button>
 
                   <button
                     type="button"
-                    disabled={loading || !agreedToTerms || holdRemainingSeconds === 0}
+                    disabled={loading || !agreedToTerms}
                     onClick={handleProceedToPayment}
-                    className="w-full sm:flex-1 py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl sm:rounded-2xl text-base sm:text-lg font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#9A773F] disabled:opacity-40 hover:brightness-110 shadow-[0_4px_25px_rgba(200,169,107,0.35)] flex items-center justify-center gap-2 sm:gap-3 cursor-pointer min-h-[44px]"
+                    className="w-full sm:flex-1 py-3.5 sm:py-4 px-6 sm:px-8 rounded-xl sm:rounded-2xl text-base sm:text-lg font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#9A773F] disabled:opacity-40 hover:brightness-110 shadow-[0_4px_25px_rgba(200,169,107,0.35)] flex items-center justify-center gap-2 sm:gap-3 cursor-pointer min-h-[48px]"
                   >
                     <Lock className="w-5 h-5 text-[#0D0F0E] shrink-0" />
                     <span>
-                      {loading ? "در حال اتصال به درگاه امن..." : `پرداخت بیعانه (${formatToman(selectedService.depositPrice)})`}
+                      {loading ? "در حال اتصال به درگاه امن شاپرک..." : `تأیید شماره و پرداخت بیعانه (${formatToman(selectedService.depositPrice)})`}
                     </span>
                   </button>
                 </div>
@@ -1038,6 +1053,95 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         </div>
 
       </div>
+
+      {/* TARIFF / PRICE LIST MODAL */}
+      {showPricingModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pricing-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          dir="rtl"
+        >
+          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[#141715] border border-[#C8A96B]/40 rounded-3xl p-6 sm:p-8 shadow-2xl text-right">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#242A27]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#C8A96B]/15 text-[#E4C88E] flex items-center justify-center">
+                  <Receipt className="w-5 h-5 text-[#C8A96B]" />
+                </div>
+                <div>
+                  <h3 id="pricing-modal-title" className="text-lg sm:text-xl font-bold font-heading text-[#F7F4EE]">
+                    جدول رسمی تعرفه خدمات و بیعانه سالن
+                  </h3>
+                  <p className="text-xs text-[#A89E90] mt-0.5">
+                    شفافیت کامل در هزینه‌ها؛ بدون هیچ‌گونه هزینه مازاد در سالن
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPricingModal(false)}
+                className="p-2 rounded-xl bg-[#1C221F] text-[#A89E90] hover:text-[#F7F4EE] hover:bg-[#252C28] transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+                aria-label="بستن پنجره تعرفه"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Pricing List Table / Cards */}
+            <div className="divide-y divide-[#202622] my-4">
+              {services.map((srv) => {
+                const isSelected = selectedService.id === srv.id
+                return (
+                  <div key={srv.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm sm:text-base font-bold text-[#F7F4EE]">{srv.name}</span>
+                        {isSelected && (
+                          <span className="px-2 py-0.5 rounded bg-[#C8A96B]/20 text-[#E4C88E] text-[10px] font-bold">
+                            انتخاب فعلی
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#8C8477]">{srv.description}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
+                      <div className="text-left">
+                        <div className="text-sm sm:text-base font-bold text-[#E4C88E]">{formatToman(srv.price)}</div>
+                        <div className="text-[11px] text-[#8C8477]">بیعانه: {formatToman(srv.depositPrice)}</div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedService(srv)
+                          setShowPricingModal(false)
+                        }}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all min-h-[38px] ${
+                          isSelected
+                            ? "bg-[#C8A96B] text-[#0D0F0E]"
+                            : "bg-[#1C221F] text-[#E4C88E] hover:bg-[#C8A96B] hover:text-[#0D0F0E] border border-[#C8A96B]/30"
+                        }`}
+                      >
+                        {isSelected ? "انتخاب شده" : "انتخاب خدمت"}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Modal Footer Note */}
+            <div className="pt-4 border-t border-[#242A27] text-center text-xs text-[#8C8477]">
+              <span>پذیرش در سالن صرفاً با تعیین وقت قبلی و پرداخت بیعانه از طریق رزرواسیون امکان‌پذیر است.</span>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

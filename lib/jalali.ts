@@ -368,3 +368,87 @@ export function getRelativeTehranDate(daysOffset: number = 0): {
   }
 }
 
+export interface JalaliWeekDay {
+  dateStr: string // "YYYY-MM-DD"
+  dayName: string // "شنبه", "یکشنبه", ...
+  dayNumber: number // Jalali day, e.g. 7
+  monthName: string // "آذر", ...
+  year: number // 1405
+  formattedShort: string // "۷ آذر"
+  formattedFull: string // "شنبه، ۷ آذر ۱۴۰۵"
+  isToday: boolean
+  dayIndex: number // 0 to 6 (0 = شنبه, 6 = جمعه)
+}
+
+export interface JalaliWeekInfo {
+  weekDays: JalaliWeekDay[]
+  startFormatted: string
+  endFormatted: string
+  weekTitle: string
+  saturdayDateStr: string
+  fridayDateStr: string
+}
+
+/**
+ * Calculate the authoritative 7 days of the Jalali week (Saturday through Friday)
+ * for any given date and week offset.
+ */
+export function getJalaliWeekDays(baseDateStr?: string, weekOffset: number = 0): JalaliWeekInfo {
+  const todayTehran = getTehranDateString()
+  const referenceDateStr = baseDateStr && /^\d{4}-\d{2}-\d{2}$/.test(baseDateStr)
+    ? baseDateStr
+    : todayTehran
+
+  const [y, m, d] = referenceDateStr.split("-").map(Number)
+  const baseDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+
+  // In JavaScript: 0 = Sun, 1 = Mon, 2 = Tue, 3 = Wed, 4 = Thu, 5 = Fri, 6 = Sat
+  const dayOfWeek = baseDate.getUTCDay()
+  // In Iran, week starts on Saturday.
+  const daysSinceSaturday = (dayOfWeek + 1) % 7
+
+  const saturdayDate = new Date(baseDate)
+  saturdayDate.setUTCDate(saturdayDate.getUTCDate() - daysSinceSaturday + weekOffset * 7)
+
+  const persianDayNames = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"]
+  const weekDays: JalaliWeekDay[] = []
+
+  for (let i = 0; i < 7; i++) {
+    const current = new Date(saturdayDate)
+    current.setUTCDate(current.getUTCDate() + i)
+    const iso = current.toISOString().slice(0, 10)
+    const [cy, cm, cd] = iso.split("-").map(Number)
+    const [jy, jm, jd] = gregorianToJalali(cy, cm, cd)
+    const monthName = PERSIAN_MONTHS[jm - 1]
+    const dayName = persianDayNames[i]
+
+    weekDays.push({
+      dateStr: iso,
+      dayName,
+      dayNumber: jd,
+      monthName,
+      year: jy,
+      formattedShort: `${toPersianDigits(jd)} ${monthName}`,
+      formattedFull: `${dayName}، ${toPersianDigits(jd)} ${monthName} ${toPersianDigits(jy)}`,
+      isToday: iso === todayTehran,
+      dayIndex: i,
+    })
+  }
+
+  const firstDay = weekDays[0]
+  const lastDay = weekDays[6]
+  const startFormatted = `${toPersianDigits(firstDay.dayNumber)} ${firstDay.monthName}`
+  const endFormatted = `${toPersianDigits(lastDay.dayNumber)} ${lastDay.monthName}`
+  const weekTitle = `هفته ${startFormatted} الی ${endFormatted} ${toPersianDigits(lastDay.year)}`
+
+  return {
+    weekDays,
+    startFormatted,
+    endFormatted,
+    weekTitle,
+    saturdayDateStr: firstDay.dateStr,
+    fridayDateStr: lastDay.dateStr,
+  }
+}
+
+

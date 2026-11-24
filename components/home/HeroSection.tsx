@@ -29,7 +29,7 @@ export function HeroSection() {
             </div>
 
             {/* Main Promise Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-black text-[#F7F4EE] leading-[1.2] tracking-tight">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-black text-[#F7F4EE] leading-[1.35] sm:leading-[1.3] tracking-normal text-balance">
               استایل حرفه‌ای،
               <span className="block mt-2 bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#9A773F] bg-clip-text text-transparent">
                 دقیقاً سر وقت شما.
@@ -37,8 +37,8 @@ export function HeroSection() {
             </h1>
 
             {/* Clear Subtitle */}
-            <p className="text-lg sm:text-xl text-[#C5BDB2] max-w-2xl leading-relaxed font-normal">
-              آرایشگاه کوروش با نوبت‌های اختصاصی <strong className="text-[#F7F4EE]">۶۰ دقیقه‌ای</strong> و زمان‌بندی بدون معطلی. از ۱۰:۰۰ صبح تا ۲۳:۰۰ شب، در محیطی آرام و مدرن با مواد اولیه اروپایی.
+            <p className="text-lg sm:text-xl text-[#C5BDB2] max-w-2xl leading-[1.75] font-normal text-pretty">
+              آرایشگاه کوروش با نوبت‌های اختصاصی <strong className="text-[#F7F4EE] font-bold">۶۰ دقیقه‌ای</strong> و زمان‌بندی بدون معطلی. از ۱۰:۰۰ صبح تا ۲۳:۰۰ شب، در محیطی آرام و مدرن با مواد اولیه اروپایی.
             </p>
 
             {/* Key Value Highlights */}
@@ -76,7 +76,7 @@ export function HeroSection() {
                   <Star key={i} className="w-4 h-4 fill-[#E4C88E]" />
                 ))}
               </div>
-              <span><strong>۴.۹</strong> از ۵ (بیش از ۴۰۰ نوبت رضایت‌بخش ثبت شده)</span>
+              <span><strong className="font-bold text-[#F7F4EE] persian-nums">۴.۹</strong> از ۵ (بیش از <span className="persian-nums">۴۰۰</span> نوبت رضایت‌بخش ثبت شده)</span>
             </div>
           </div>
 

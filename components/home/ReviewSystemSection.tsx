@@ -207,7 +207,7 @@ export function ReviewSystemSection() {
             <span>تجربه شما از کوروش باربر</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-normal text-balance">
             روایت مشتریان از کیفیت، دقت و انضباط
           </h2>
 

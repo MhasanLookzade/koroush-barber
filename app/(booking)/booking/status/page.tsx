@@ -336,7 +336,7 @@ function BookingStatusContent() {
             <span>سامانه استعلام و مدیریت نوبت</span>
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-heading font-black text-[#F7F4EE] tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-heading font-black text-[#F7F4EE] tracking-normal text-balance">
             پیگیری و مدیریت نوبت‌های من
           </h1>
 

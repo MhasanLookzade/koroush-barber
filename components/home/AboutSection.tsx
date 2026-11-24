@@ -27,7 +27,7 @@ export function AboutSection() {
 
               {/* Experience Badge */}
               <div className="absolute -bottom-6 left-2 sm:-left-6 bg-[#161917]/95 backdrop-blur-xl border border-[#C8A96B]/40 rounded-2xl p-4 sm:p-5 shadow-2xl">
-                <div className="text-3xl font-extrabold text-[#E4C88E] font-heading">۱۵+</div>
+                <div className="text-3xl font-black text-[#E4C88E] font-heading persian-nums">۱۵+</div>
                 <div className="text-xs font-semibold text-[#F7F4EE] mt-0.5">سال تجربه تخصصی</div>
                 <div className="text-[11px] text-[#A89E90]">پیرایش کلاسیک و مدرن</div>
               </div>
@@ -42,7 +42,7 @@ export function AboutSection() {
               <span>فلسفه و اصالت کوروش باربر</span>
             </div>
 
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] leading-tight tracking-tight">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] leading-[1.35] tracking-normal text-balance">
               پیرایش فقط کوتاهی مو نیست؛
               <span className="block mt-1 text-[#C8A96B]">طراحی چهره و اعتمادبه‌نفس شماست.</span>
             </h2>

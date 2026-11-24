@@ -138,7 +138,7 @@ export function GallerySection() {
             <span>تجربه بصری و اتمسفر سالن</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-normal text-balance">
             فضایی آرام و اختصاصی برای شما
           </h2>
 

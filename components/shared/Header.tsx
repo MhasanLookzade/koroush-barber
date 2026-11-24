@@ -98,7 +98,7 @@ export function Header({ id }: { id?: string }) {
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-heading font-black text-sm xs:text-base sm:text-2xl text-[#F7F4EE] tracking-tight leading-tight whitespace-nowrap">
+              <span className="font-heading font-black text-sm xs:text-base sm:text-2xl text-[#F7F4EE] tracking-normal leading-tight whitespace-nowrap">
                 آرایشگاه کوروش
               </span>
               <span className="hidden xs:block text-[9px] sm:text-[11px] font-semibold text-[#C8A96B] tracking-[0.18em] uppercase font-mono leading-none mt-0.5">

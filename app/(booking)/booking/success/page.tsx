@@ -304,7 +304,7 @@ function BookingSuccessContent() {
             <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10" />
           </div>
 
-          <h1 className="text-2xl sm:text-4xl font-heading font-black text-[#F7F4EE] tracking-tight">
+          <h1 className="text-2xl sm:text-4xl font-heading font-black text-[#F7F4EE] tracking-normal text-balance">
             رزرو نوبت شما با موفقیت تأیید شد!
           </h1>
           <p className="text-xs sm:text-sm text-[#A8A39A] leading-relaxed">

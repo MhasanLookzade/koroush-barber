@@ -383,7 +383,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
             <span>رزرو آنلاین سریع و بدون پیچیدگی</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-normal text-balance">
             میز نوبت‌دهی آنلاین آرایشگاه کوروش
           </h2>
 
@@ -616,7 +616,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                             <span className="hidden sm:inline">{d.dayName}</span>
                             <span className="sm:hidden">{shortDay}</span>
                           </div>
-                          <div className={`text-base sm:text-2xl font-extrabold my-0.5 sm:my-1 font-mono ${dayClosed ? "text-red-300/80" : "text-[#F7F4EE]"}`}>
+                          <div className={`text-base sm:text-2xl font-heading font-black my-0.5 sm:my-1 persian-nums ${dayClosed ? "text-red-300/80" : "text-[#F7F4EE]"}`}>
                             {d.dayNumber}
                           </div>
                           <div className="text-[9px] sm:text-[11px] text-[#A89E90] leading-none">{d.monthName}</div>

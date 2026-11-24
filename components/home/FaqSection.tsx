@@ -63,7 +63,7 @@ export function FaqSection() {
             <span>پاسخ به ابهامات متداول</span>
           </div>
 
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-tight">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-normal text-balance">
             پرسش‌های متداول مراجعان
           </h2>
 

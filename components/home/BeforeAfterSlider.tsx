@@ -65,15 +65,15 @@ export function BeforeAfterSlider() {
         {/* Layer 1: BEFORE (Background) */}
         <div className="absolute inset-0 w-full h-full">
           <img
-            src="/images/haircut-before.svg"
-            alt="قبل از پیرایش در آرایشگاه کوروش"
+            src="/images/haircut-before.jpg"
+            alt="قبل از پیرایش (تصویر نمونه استایل)"
             className="w-full h-full object-cover pointer-events-none"
             loading="lazy"
           />
           {/* Label Before */}
-          <div className="absolute top-6 right-6 z-10 px-4 py-2 rounded-full bg-background/80 backdrop-blur-md border border-border text-xs sm:text-sm font-semibold text-muted-foreground shadow-lg flex items-center gap-2">
+          <div className="absolute top-4 sm:top-6 right-4 sm:right-6 z-10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#0D0F0E]/85 backdrop-blur-md border border-[#2D332F] text-[11px] sm:text-xs font-semibold text-[#A89E90] shadow-lg flex items-center gap-1.5 sm:gap-2">
             <span className="w-2 h-2 rounded-full bg-slate-400" />
-            <span>قبل از پیرایش</span>
+            <span>قبل از اصلاح</span>
           </div>
         </div>
 
@@ -83,15 +83,15 @@ export function BeforeAfterSlider() {
           style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
         >
           <img
-            src="/images/haircut-after.svg"
-            alt="استایل نهایی و فید تخصصی در آرایشگاه کوروش"
+            src="/images/haircut-after.jpg"
+            alt="بعد از استایل و فید حرفه‌ای (تصویر نمونه استایل)"
             className="w-full h-full object-cover pointer-events-none"
             loading="lazy"
           />
           {/* Label After */}
-          <div className="absolute top-6 left-6 z-10 px-4 py-2 rounded-full bg-primary/20 backdrop-blur-md border border-primary/40 text-xs sm:text-sm font-bold text-primary shadow-lg flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5 text-primary" />
-            <span>استایل نهایی کوروش</span>
+          <div className="absolute top-4 sm:top-6 left-4 sm:left-6 z-10 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#1A1F1C]/90 backdrop-blur-md border border-[#C8A96B]/50 text-[11px] sm:text-xs font-bold text-[#E4C88E] shadow-lg flex items-center gap-1.5 sm:gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-[#C8A96B]" />
+            <span>استایل نهایی و فید</span>
           </div>
         </div>
 
@@ -122,9 +122,13 @@ export function BeforeAfterSlider() {
       </div>
 
       {/* Instructional Caption */}
-      <div className="mt-4 flex items-center justify-center gap-2 text-xs sm:text-sm text-muted-foreground text-center">
-        <MoveHorizontal className="w-4 h-4 text-primary animate-pulse" />
-        <span>دسته وسط را به چپ یا راست بکشید تا تغییر فرم و خط ریش را لمس کنید</span>
+      <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-xs text-[#8C8477] text-center">
+        <div className="flex items-center gap-1.5 text-[#C8A96B]">
+          <MoveHorizontal className="w-4 h-4 animate-pulse" />
+          <span>دسته وسط را به چپ یا راست بکشید تا تغییر فرم و خط ریش را مقایسه کنید</span>
+        </div>
+        <span className="hidden sm:inline text-[#3A423D]">•</span>
+        <span className="text-[11px] text-[#716A5E]">(تصویر فوق صرفاً نمونه شبیه‌سازی استایل بوده و از مشتریان واقعی عکاسی نشده است)</span>
       </div>
     </div>
   )

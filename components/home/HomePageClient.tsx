@@ -31,13 +31,13 @@ export function HomePageClient() {
             <div className="text-center max-w-3xl mx-auto space-y-4 mb-12 sm:mb-16">
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#181D1A] border border-[#C8A96B]/30 text-xs sm:text-sm font-semibold text-[#E4C88E]">
                 <Sparkles className="w-3.5 h-3.5 text-[#C8A96B]" />
-                <span>نتایج واقعی پیرایش</span>
+                <span>نمونه تصویری تغییر فرم و استایل مو</span>
               </div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[#F7F4EE] tracking-tight">
                 تغییر چهره و استایل مو قبل و بعد
               </h2>
               <p className="text-base sm:text-lg text-[#C5BDB2]">
-                دسته لغزنده را به طرفین بکشید تا ظرافت فید و خط‌زنی آنکارد استاد کوروش را مقایسه کنید.
+                دسته لغزنده را به طرفین بکشید تا تفاوت فید دقیق، خط‌زنی آنکارد و استایل موی متناسب با فرم صورت را مشاهده کنید (تصویر نمونه استایل).
               </p>
             </div>
 

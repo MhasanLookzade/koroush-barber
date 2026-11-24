@@ -530,7 +530,7 @@ export default function AdminSmsPage() {
               <span>کل پیام‌ها</span>
               <MessageSquare className="w-4 h-4 text-[#A89E90]" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-[#F7F4EE]">
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-[#F7F4EE]">
               {toPersianDigits(data.stats.total)}
             </div>
           </Card>
@@ -540,7 +540,7 @@ export default function AdminSmsPage() {
               <span>تحویل شده</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-emerald-400">
               {toPersianDigits(data.stats.sent)}
             </div>
           </Card>
@@ -550,7 +550,7 @@ export default function AdminSmsPage() {
               <span>در صف ارسال</span>
               <Clock className="w-4 h-4 text-[#C8A96B]" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-[#E4C88E]">
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-[#E4C88E]">
               {toPersianDigits(data.stats.pending)}
             </div>
           </Card>
@@ -560,7 +560,7 @@ export default function AdminSmsPage() {
               <span>خطا / ناموفق</span>
               <AlertCircle className="w-4 h-4 text-red-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-red-400">
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-red-400">
               {toPersianDigits(data.stats.failed)}
             </div>
           </Card>

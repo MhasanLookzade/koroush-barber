@@ -840,10 +840,10 @@ export default function AdminDashboardPage() {
               <Calendar className="w-3.5 h-3.5 text-[#C8A96B]" />
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-xl sm:text-2xl font-black font-mono text-[#F7F4EE]">
+              <span className="text-xl sm:text-2xl font-black font-heading persian-nums text-[#F7F4EE]">
                 {toPersianDigits(dailySummary.occupiedSlots)}
               </span>
-              <span className="text-[10px] text-[#716A5E]">
+              <span className="text-[10px] text-[#716A5E] persian-nums">
                 از {toPersianDigits(dailySummary.totalSlots)} ساعت ({toPersianDigits(dailySummary.occupancyPercentage)}٪)
               </span>
             </div>
@@ -861,7 +861,7 @@ export default function AdminDashboardPage() {
               <span className="text-[11px] font-medium">تکمیل و تسویه‌شده</span>
               <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-blue-400">
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-blue-400">
               {toPersianDigits(dailySummary.completedCount)}
             </div>
             <span className="text-[10px] text-[#716A5E] block">نوبت انجام‌شده</span>
@@ -873,7 +873,7 @@ export default function AdminDashboardPage() {
               <span className="text-[11px] font-medium">ساعت‌های آزاد</span>
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             </div>
-            <div className="text-xl sm:text-2xl font-black font-mono text-emerald-400">
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-emerald-400">
               {toPersianDigits(dailySummary.freeSlotsCount)}
             </div>
             <span className="text-[10px] text-[#716A5E] block">آماده پذیرش مراجع</span>
@@ -885,7 +885,7 @@ export default function AdminDashboardPage() {
               <span className="text-[11px] font-medium">بیعانه وصول‌شده</span>
               <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
             </div>
-            <div className="text-base sm:text-lg font-black font-mono text-emerald-400 truncate">
+            <div className="text-base sm:text-lg font-black font-heading persian-nums text-emerald-400 truncate">
               {formatToman(dailySummary.totalDepositsCollected)}
             </div>
             <span className="text-[10px] text-[#716A5E] block">درگاه پرداخت آنلاین</span>
@@ -897,7 +897,7 @@ export default function AdminDashboardPage() {
               <span className="text-[11px] font-medium">مانده قابل تسویه</span>
               <Clock className="w-3.5 h-3.5 text-[#E4C88E]" />
             </div>
-            <div className="text-base sm:text-lg font-black font-mono text-[#E4C88E] truncate">
+            <div className="text-base sm:text-lg font-black font-heading persian-nums text-[#E4C88E] truncate">
               {formatToman(dailySummary.totalOutstandingBalance)}
             </div>
             <span className="text-[10px] text-[#716A5E] block">تسویه حضوری در سالن</span>

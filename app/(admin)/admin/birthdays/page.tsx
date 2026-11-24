@@ -235,7 +235,7 @@ export default function AdminBirthdaysPage() {
               <span>متولدین امروز</span>
               <Sparkles className="w-4 h-4 text-[#C8A96B]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono text-[#F7F4EE]">
+            <div className="text-2xl sm:text-3xl font-black font-heading persian-nums text-[#F7F4EE]">
               {toPersianDigits(data.stats.todayCount)}
             </div>
             <div className="text-[11px] text-[#A89E90]">امروز {toPersianDigits(data.currentJalali.day)} {data.currentJalali.monthName}</div>
@@ -247,7 +247,7 @@ export default function AdminBirthdaysPage() {
               <span>پیش‌رو در این ماه</span>
               <Gift className="w-4 h-4 text-[#A89E90]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono text-[#E4C88E]">
+            <div className="text-2xl sm:text-3xl font-black font-heading persian-nums text-[#E4C88E]">
               {toPersianDigits(data.stats.upcomingCount)}
             </div>
             <div className="text-[11px] text-[#7E776C]">روزهای آینده ماه {data.selectedMonthName}</div>
@@ -259,7 +259,7 @@ export default function AdminBirthdaysPage() {
               <span>کل متولدین ماه</span>
               <Calendar className="w-4 h-4 text-[#A89E90]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono text-[#F7F4EE]">
+            <div className="text-2xl sm:text-3xl font-black font-heading persian-nums text-[#F7F4EE]">
               {toPersianDigits(data.stats.totalThisMonth)}
             </div>
             <div className="text-[11px] text-[#7E776C]">مجموع مشتریان ماه {data.selectedMonthName}</div>
@@ -271,7 +271,7 @@ export default function AdminBirthdaysPage() {
               <span>بدون ثبت تولد</span>
               <Clock className="w-4 h-4 text-[#A89E90]" />
             </div>
-            <div className="text-2xl sm:text-3xl font-black font-mono text-[#8C8477]">
+            <div className="text-2xl sm:text-3xl font-black font-heading persian-nums text-[#8C8477]">
               {toPersianDigits(data.stats.withoutBirthdateCount)}
             </div>
             <div className="text-[11px] text-[#7E776C]">امکان ثبت در رزروهای آتی</div>

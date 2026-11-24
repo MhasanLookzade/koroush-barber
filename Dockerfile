@@ -1,6 +1,6 @@
 # ==============================================================================
 # Koroush Barber — Production Multi-Stage Dockerfile
-# Optimized for Next.js 14 Standalone Output with Node.js 20 Alpine
+# Optimized for Next.js 14 Standalone Output with Node.js 20 Alpine & PostgreSQL
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -8,7 +8,7 @@
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl wget curl
 RUN npm install -g npm@latest
 
 # ------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client for the active platform
+# Generate Prisma Client for PostgreSQL
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npx prisma generate
 
@@ -44,6 +44,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# Install Prisma CLI globally for standalone migration deployment
+RUN npm install -g prisma@5.21.1
 
 # Create non-root system user for security
 RUN addgroup --system --gid 1001 nodejs && \
@@ -69,8 +72,8 @@ USER nextjs
 
 EXPOSE 3000
 
-# Docker Healthcheck targeting the Iranian health check endpoint
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+# Docker Healthcheck targeting the application health check endpoint
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/api/health || exit 1
 
 ENTRYPOINT ["./docker-entrypoint.sh"]

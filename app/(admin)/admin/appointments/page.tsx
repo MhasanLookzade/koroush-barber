@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatToman, toPersianDigits, getTehranDateString, getJalaliDate } from "@/lib/jalali"
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker"
+import { RescheduleAppointmentModal } from "@/components/admin/RescheduleAppointmentModal"
 import {
   Calendar,
   Clock,
@@ -66,6 +67,7 @@ function AppointmentsContent() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [rescheduleAppointment, setRescheduleAppointment] = useState<AppointmentItem | null>(null)
 
   // Manual booking modal state
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -377,6 +379,16 @@ function AppointmentsContent() {
                   <>
                     <Button
                       size="sm"
+                      variant="outline"
+                      onClick={() => setRescheduleAppointment(a)}
+                      className="border-[#C8A96B]/50 text-[#E4C88E] hover:bg-[#C8A96B]/15 text-xs gap-1.5 min-h-[36px] cursor-pointer"
+                    >
+                      <Calendar className="w-3.5 h-3.5 text-[#C8A96B]" />
+                      <span>تغییر تاریخ یا ساعت نوبت</span>
+                    </Button>
+
+                    <Button
+                      size="sm"
                       onClick={() => handleUpdateStatus(a.id, "COMPLETED", true)}
                       disabled={actionLoading === a.id}
                       className="bg-green-700 hover:bg-green-600 text-white text-xs gap-1"
@@ -561,6 +573,17 @@ function AppointmentsContent() {
           </Card>
         </div>
       )}
+
+      {/* Reschedule Modal */}
+      <RescheduleAppointmentModal
+        appointment={rescheduleAppointment}
+        isOpen={Boolean(rescheduleAppointment)}
+        onClose={() => setRescheduleAppointment(null)}
+        onSuccess={() => {
+          setSuccessMsg("زمان نوبت با موفقیت تغییر کرد.")
+          fetchAppointments()
+        }}
+      />
     </div>
   )
 }

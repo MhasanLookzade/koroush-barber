@@ -67,11 +67,14 @@ export async function GET(request: NextRequest) {
       customerPhone: a.customerPhone,
       serviceName: a.service.name,
       status: a.status,
+      dateUtc: a.date.toISOString(),
+      jalaliFull: formatJalaliFull(a.date),
       time: getTehranTimeString(a.date),
       totalPrice: a.totalPrice,
       depositPaid: a.depositPaid,
       balanceDue: a.balanceDue,
       isRemainderPaid: a.isRemainderPaid,
+      adminNotes: a.adminNotes,
     }))
 
     // Recent 5 system audit logs

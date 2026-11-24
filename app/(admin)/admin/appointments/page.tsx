@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
+import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -203,20 +204,29 @@ function AppointmentsContent() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#2D332F]">
         <div>
           <h1 className="text-2xl font-bold font-heading text-[#F5F1E8]">
-            مدیریت نوبت‌ها و تقویم سالن
+            سوابق، جستجو و پرونده نوبت‌ها
           </h1>
           <p className="text-xs text-[#A8A39A] mt-1">
-            مشاهده، ثبت دستی، تغییر وضعیت حضور و تسویه مانده نوبت‌های مشتریان
+            آرشیو کامل، جستجوی پیشرفته مراجعان، فیلتر وضعیت‌ها و ثبت پرونده نوبت
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs gap-1.5 px-4 py-5 rounded-xl shadow-lg"
-        >
-          <Plus className="w-4 h-4" />
-          ثبت نوبت دستی (پذیرش)
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link href="/admin" className="flex-1 sm:flex-initial">
+            <Button variant="outline" className="w-full border-[#2D332F] text-[#E4C88E] hover:bg-[#1C221F] text-xs h-10 px-3">
+              <Calendar className="w-4 h-4 ml-1.5 text-[#C8A96B]" />
+              <span>تایم‌لاین هفتگی سالن</span>
+            </Button>
+          </Link>
+
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="flex-1 sm:flex-initial bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs gap-1.5 px-4 h-10 rounded-xl shadow-lg cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>ثبت نوبت دستی</span>
+          </Button>
+        </div>
       </div>
 
       {error && (

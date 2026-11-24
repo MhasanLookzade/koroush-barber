@@ -25,9 +25,9 @@ import { useState, useEffect } from "react"
 import { useAdminNav } from "./AdminNavContext"
 
 const navItems = [
-  { href: "/admin", label: "داشبورد مدیریت", icon: LayoutDashboard },
-  { href: "/admin/appointments", label: "نوبت‌ها و تقویم", icon: Calendar },
-  { href: "/admin/availability", label: "ساعات کاری و مسدودی", icon: Clock },
+  { href: "/admin", label: "داشبورد و زمان‌بندی هفتگی", icon: LayoutDashboard },
+  { href: "/admin/appointments", label: "سوابق و جستجوی نوبت‌ها", icon: Calendar },
+  { href: "/admin/availability", label: "ساعات کاری و تعطیلات", icon: Clock },
   { href: "/admin/services", label: "خدمات و تعرفه‌ها", icon: Scissors },
   { href: "/admin/customers", label: "دایرکتوری مشتریان", icon: Users },
   { href: "/admin/birthdays", label: "تولد مشتریان", icon: Cake },

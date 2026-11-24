@@ -35,7 +35,7 @@ interface Slot {
   endTime: string
   label: string
   isAvailable: boolean
-  status: "AVAILABLE" | "HELD" | "BOOKED" | "BLOCKED"
+  status: "AVAILABLE" | "HELD" | "BOOKED" | "BLOCKED" | "PAST"
 }
 
 interface BookingStudioProps {
@@ -725,23 +725,47 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                       <p className="text-sm text-red-300/80">{closedReason || "تعطیلی تقویمی یا استراحت سالن"}</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-[#C5BDB2]">ساعت مدنظر خود را لمس نمایید:</span>
-                        {slotsLoading && (
-                          <span className="flex items-center gap-1.5 text-xs text-[#E4C88E] animate-pulse">
-                            <RefreshCw className="w-3 h-3 animate-spin" />
-                            <span>بررسی نوبت‌ها...</span>
-                          </span>
-                        )}
+                    <div className="space-y-4">
+                      {/* Interactive Slot Status Legend */}
+                      <div className="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 text-xs text-[#A89E90] border-b border-[#222825]">
+                        <span className="font-semibold text-[#F7F4EE]">ساعت مدنظر خود را انتخاب فرمایید:</span>
+                        <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                            <span>قابل رزرو</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#C8A96B]" />
+                            <span>انتخاب شما</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#555E59]" />
+                            <span>رزرو شده</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            <span>در حال رزرو</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-rose-500/70" />
+                            <span>غیرفعال / گذشته</span>
+                          </div>
+                        </div>
                       </div>
+
+                      {slotsLoading && (
+                        <div className="flex items-center gap-1.5 text-xs text-[#E4C88E] animate-pulse">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <span>در حال استعلام نوبت‌های آزاد...</span>
+                        </div>
+                      )}
 
                       <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 transition-opacity duration-200 ${slotsLoading ? "opacity-60 pointer-events-none" : "opacity-100"}`}>
                         {availableSlots.length === 0 && slotsLoading
                           ? Array.from({ length: 13 }).map((_, i) => (
                               <div
                                 key={i}
-                                className="min-h-[52px] sm:min-h-[56px] px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-[#202522] bg-[#121513] animate-pulse flex flex-col items-center justify-center gap-1"
+                                className="min-h-[58px] sm:min-h-[62px] px-3 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border-2 border-[#202522] bg-[#121513] animate-pulse flex flex-col items-center justify-center gap-1"
                               >
                                 <div className="h-4 w-12 bg-[#202623] rounded" />
                                 <div className="h-2.5 w-8 bg-[#1B201D] rounded" />
@@ -749,24 +773,48 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                             ))
                           : availableSlots.map((slot) => {
                               const isSelected = selectedTime === slot.time
-                              const isAvailable = slot.isAvailable
+                              const isAvailable = slot.isAvailable && slot.status === "AVAILABLE"
+                              const status = slot.status
+
+                              let statusLabel = "قابل رزرو"
+                              let styleClass = "bg-[#101311] text-[#F7F4EE] border-[#2A332E] hover:border-[#C8A96B] hover:bg-[#1A201D] cursor-pointer shadow-sm"
+                              let isDisabled = false
+
+                              if (isSelected) {
+                                statusLabel = "انتخاب شما"
+                                styleClass = "bg-gradient-to-b from-[#E4C88E] to-[#C8A96B] text-[#0D0F0E] border-[#F5F1E8] ring-2 ring-[#C8A96B] ring-offset-2 ring-offset-[#141715] shadow-lg font-black cursor-pointer scale-105"
+                                isDisabled = false
+                              } else if (status === "BOOKED") {
+                                statusLabel = "رزرو شده"
+                                styleClass = "bg-[#141615] text-[#555E59] border-[#202422] opacity-50 cursor-not-allowed select-none line-through"
+                                isDisabled = true
+                              } else if (status === "HELD") {
+                                statusLabel = "در حال رزرو"
+                                styleClass = "bg-[#1A1813] text-[#A6884C]/80 border-[#2D271D] opacity-65 cursor-not-allowed select-none"
+                                isDisabled = true
+                              } else if (status === "BLOCKED") {
+                                statusLabel = "غیرفعال"
+                                styleClass = "bg-[#1A1414] text-[#A85858]/70 border-[#2C1D1D] opacity-55 cursor-not-allowed select-none"
+                                isDisabled = true
+                              } else if (status === "PAST") {
+                                statusLabel = "گذشته"
+                                styleClass = "bg-[#0F1110] text-[#444C47] border-[#181B19] opacity-40 cursor-not-allowed select-none"
+                                isDisabled = true
+                              }
+
                               return (
                                 <button
                                   key={slot.time}
                                   type="button"
-                                  disabled={!isAvailable}
+                                  disabled={isDisabled}
                                   onClick={() => setSelectedTime(slot.time)}
-                                  className={`min-h-[52px] sm:min-h-[56px] px-2 sm:px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl border-2 font-bold text-sm sm:text-base flex flex-col items-center justify-center gap-0.5 transition-all ${
-                                    isSelected
-                                      ? "bg-[#C8A96B] text-[#0D0F0E] border-[#E4C88E] ring-2 ring-[#E4C88E]/50 ring-offset-2 ring-offset-[#141715] shadow-[0_0_15px_rgba(200,169,107,0.4)] cursor-pointer"
-                                      : isAvailable
-                                      ? "bg-[#101311] text-[#F7F4EE] border-[#2A332E] hover:border-[#C8A96B] hover:bg-[#1A201D] cursor-pointer"
-                                      : "bg-[#161817] text-[#555E59] border-[#222624] opacity-50 cursor-not-allowed line-through"
-                                  }`}
+                                  aria-label={`نوبت ساعت ${toPersianDigits(slot.time)} - ${statusLabel}`}
+                                  aria-disabled={isDisabled}
+                                  className={`min-h-[58px] sm:min-h-[62px] px-2 sm:px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl border-2 font-bold text-sm sm:text-base flex flex-col items-center justify-center gap-0.5 transition-all ${styleClass}`}
                                 >
-                                  <span dir="ltr">{slot.time}</span>
-                                  <span className="text-[10px] font-normal opacity-80">
-                                    {isSelected ? "انتخاب شما" : isAvailable ? "خالی" : "پر شده"}
+                                  <span dir="ltr" className="font-mono tracking-wider">{toPersianDigits(slot.time)}</span>
+                                  <span className={`text-[10px] font-medium ${isSelected ? "text-[#0D0F0E] font-bold" : isAvailable ? "text-emerald-400" : "opacity-80"}`}>
+                                    {statusLabel}
                                   </span>
                                 </button>
                               )

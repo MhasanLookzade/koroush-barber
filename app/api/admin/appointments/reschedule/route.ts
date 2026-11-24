@@ -7,6 +7,7 @@ import {
   getTehranTimeString,
   formatJalaliFull,
 } from "@/lib/jalali"
+import { isValidSlotTime } from "@/lib/booking-engine"
 
 export const dynamic = "force-dynamic"
 
@@ -27,10 +28,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate format
+    // Validate format and hourly alignment
     if (!/^\d{4}-\d{2}-\d{2}$/.test(newDateStr) || !/^\d{2}:\d{2}$/.test(newTimeStr)) {
       return NextResponse.json(
         { error: "فرمت تاریخ یا ساعت نامعتبر است (الگوی صحیح: YYYY-MM-DD و HH:MM)" },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidSlotTime(newTimeStr)) {
+      return NextResponse.json(
+        { error: "ساعت جدید نوبت نامعتبر است. ساعات معتبر ۱۰:۰۰ الی ۲۲:۰۰ و رأس ساعت هستند." },
         { status: 400 }
       )
     }

@@ -57,17 +57,28 @@ export function BeforeAfterSlider() {
       <div
         ref={containerRef}
         className="relative aspect-[4/3] sm:aspect-[16/10] w-full overflow-hidden rounded-3xl border border-border/80 shadow-2xl select-none cursor-ew-resize bg-card"
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "100%",
+          aspectRatio: "16 / 10",
+          overflow: "hidden",
+        }}
         onMouseDown={() => setIsDragging(true)}
         onTouchStart={() => setIsDragging(true)}
         role="region"
         aria-label="مقایسه قبل و بعد از پیرایش"
       >
         {/* Layer 1: BEFORE (Background) */}
-        <div className="absolute inset-0 w-full h-full">
+        <div
+          className="absolute inset-0 w-full h-full overflow-hidden"
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "hidden" }}
+        >
           <img
             src="/images/haircut-before.jpg"
             alt="قبل از پیرایش (تصویر نمونه استایل)"
-            className="w-full h-full object-cover pointer-events-none"
+            className="w-full h-full object-cover block pointer-events-none max-w-full"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", maxWidth: "100%" }}
             loading="lazy"
           />
           {/* Label Before */}
@@ -80,12 +91,20 @@ export function BeforeAfterSlider() {
         {/* Layer 2: AFTER (Clipped Overlay) */}
         <div
           className="absolute inset-0 w-full h-full overflow-hidden"
-          style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            overflow: "hidden",
+            clipPath: `inset(0 0 0 ${sliderPosition}%)`,
+          }}
         >
           <img
             src="/images/haircut-after.jpg"
             alt="بعد از استایل و فید حرفه‌ای (تصویر نمونه استایل)"
-            className="w-full h-full object-cover pointer-events-none"
+            className="w-full h-full object-cover block pointer-events-none max-w-full"
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", maxWidth: "100%" }}
             loading="lazy"
           />
           {/* Label After */}

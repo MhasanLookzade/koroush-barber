@@ -9,6 +9,28 @@ export const OPERATING_END_HOUR = 23 // Closed at 23:00, last slot start is 22:0
 export const SLOT_DURATION_MINUTES = 60
 export const DEFAULT_HOLD_MINUTES = 10
 
+export const VALID_SLOT_TIMES = [
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
+] as const
+
+export type ValidSlotTime = (typeof VALID_SLOT_TIMES)[number]
+
+export function isValidSlotTime(timeStr: string): timeStr is ValidSlotTime {
+  return (VALID_SLOT_TIMES as readonly string[]).includes(timeStr)
+}
+
 export interface AvailableSlot {
   time: string // "10:00"
   endTime: string // "11:00"
@@ -16,7 +38,7 @@ export interface AvailableSlot {
   utcStartTime: string
   utcEndTime: string
   isAvailable: boolean
-  status: "AVAILABLE" | "HELD" | "BOOKED" | "BLOCKED"
+  status: "AVAILABLE" | "HELD" | "BOOKED" | "BLOCKED" | "PAST"
   holdExpiresAt?: string
 }
 
@@ -192,6 +214,19 @@ export async function getAvailabilityForDate(
       }
     }
 
+    // Check if slot start time is already in the past
+    if (base.utcStartTime.getTime() <= now.getTime()) {
+      return {
+        time: base.time,
+        endTime: base.endTime,
+        label: base.label,
+        utcStartTime: base.utcStartTime.toISOString(),
+        utcEndTime: base.utcEndTime.toISOString(),
+        isAvailable: false,
+        status: "PAST",
+      }
+    }
+
     // Check active holds
     const hold = activeHolds.find(
       (h) => h.slotTime.getTime() === base.utcStartTime.getTime()
@@ -252,7 +287,19 @@ export async function reserveSlotHold(params: {
   balanceDue: number
 }> {
   const normalizedPhone = normalizeIranianPhone(params.customerPhone)
+
+  // Validate exact hourly appointment start time
+  if (!isValidSlotTime(params.timeStr)) {
+    throw new Error("ساعت شروع نوبت نامعتبر است. ساعات معتبر ۱۰:۰۰ الی ۲۲:۰۰ و رأس ساعت هستند.")
+  }
+
   const slotUtc = createUtcFromTehranTime(params.dateStr, params.timeStr)
+
+  // Prevent booking past time slots
+  if (slotUtc.getTime() <= Date.now()) {
+    throw new Error("زمان انتخابی گذشته است و امکان رزرو آن وجود ندارد")
+  }
+
   const slotEndUtc = new Date(slotUtc.getTime() + SLOT_DURATION_MINUTES * 60 * 1000)
   const holdMinutes = params.holdMinutes || DEFAULT_HOLD_MINUTES
   const expiresAt = new Date(Date.now() + holdMinutes * 60 * 1000)

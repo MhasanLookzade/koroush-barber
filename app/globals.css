@@ -49,8 +49,8 @@
 
     /* Fonts */
     --font-heading: "Cormorant Garamond", serif;
-    --font-body: "Montserrat", "Vazirmatn", sans-serif;
-    --font-persian: "Vazirmatn", sans-serif;
+    --font-body: "Vazirmatn", "Vazir", "Montserrat", system-ui, sans-serif;
+    --font-persian: "Vazirmatn", "Vazir", system-ui, sans-serif;
 
     /* ---------- SEMANTIC TOKENS (Dark Mode - DEFAULT) ---------- */
     --background: var(--color-slate-950);
@@ -191,9 +191,21 @@
     font-family: var(--font-persian);
   }
 
-  /* RTL text improvements */
+  /* RTL text improvements & Persian font standardization */
   [dir="rtl"] {
     text-align: right;
+    font-family: var(--font-persian), "Vazirmatn", "Vazir", system-ui, sans-serif;
+  }
+
+  [dir="rtl"] h1,
+  [dir="rtl"] h2,
+  [dir="rtl"] h3,
+  [dir="rtl"] h4,
+  [dir="rtl"] h5,
+  [dir="rtl"] h6,
+  [dir="rtl"] .font-heading {
+    font-family: var(--font-persian), "Vazirmatn", "Vazir", system-ui, sans-serif;
+    letter-spacing: normal;
   }
 }
 

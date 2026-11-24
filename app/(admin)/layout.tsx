@@ -24,7 +24,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AdminNavProvider>
-      <div className="flex h-screen bg-[#0D0F0E] text-[#F5F1E8]" dir="rtl">
+      <div className="flex h-screen bg-[#0D0F0E] text-[#F5F1E8] font-persian" style={{ fontFamily: "var(--font-persian)" }} dir="rtl">
         <AdminSidebar />
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <AdminHeader />

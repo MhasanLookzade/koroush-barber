@@ -4,6 +4,7 @@ import { authorizeAdmin } from "@/lib/admin-auth"
 import { createUtcFromTehranTime, getTehranTimeString, formatJalaliFull } from "@/lib/jalali"
 import { generateTrackingCode } from "@/lib/auth"
 import { normalizeIranianPhone } from "@/lib/providers/sms"
+import { isValidSlotTime } from "@/lib/booking-engine"
 
 export const dynamic = "force-dynamic"
 
@@ -50,27 +51,35 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "asc" },
     })
 
-    const formatted = appointments.map((a) => ({
-      id: a.id,
-      trackingCode: a.trackingCode,
-      customerName: a.customerName,
-      customerPhone: a.customerPhone,
-      customerEmail: a.customerEmail,
-      serviceId: a.serviceId,
-      serviceName: a.service.name,
-      barberName: a.barber.name,
-      status: a.status,
-      dateUtc: a.date.toISOString(),
-      jalaliFull: formatJalaliFull(a.date),
-      time: getTehranTimeString(a.date),
-      totalPrice: a.totalPrice,
-      depositPaid: a.depositPaid,
-      balanceDue: a.balanceDue,
-      isRemainderPaid: a.isRemainderPaid,
-      adminNotes: a.adminNotes,
-      cancellationReason: a.cancellationReason,
-      createdAt: a.createdAt.toISOString(),
-    }))
+    const formatted = appointments.map((a) => {
+      const startTime = getTehranTimeString(a.date)
+      const endTime = getTehranTimeString(a.endDate)
+      return {
+        id: a.id,
+        trackingCode: a.trackingCode,
+        customerName: a.customerName,
+        customerPhone: a.customerPhone,
+        customerEmail: a.customerEmail,
+        serviceId: a.serviceId,
+        serviceName: a.service.name,
+        barberName: a.barber.name,
+        status: a.status,
+        dateUtc: a.date.toISOString(),
+        jalaliFull: formatJalaliFull(a.date),
+        time: startTime,
+        endTime,
+        slotTime: `${startTime} الی ${endTime}`,
+        createdAtTime: getTehranTimeString(a.createdAt),
+        createdAtJalali: formatJalaliFull(a.createdAt),
+        totalPrice: a.totalPrice,
+        depositPaid: a.depositPaid,
+        balanceDue: a.balanceDue,
+        isRemainderPaid: a.isRemainderPaid,
+        adminNotes: a.adminNotes,
+        cancellationReason: a.cancellationReason,
+        createdAt: a.createdAt.toISOString(),
+      }
+    })
 
     return NextResponse.json(formatted)
   } catch (error) {
@@ -102,6 +111,13 @@ export async function POST(request: NextRequest) {
     if (!serviceId || !dateStr || !timeStr || !customerName || !customerPhone) {
       return NextResponse.json(
         { error: "اطلاعات الزامی نوبت ناقص است" },
+        { status: 400 }
+      )
+    }
+
+    if (!isValidSlotTime(timeStr)) {
+      return NextResponse.json(
+        { error: "ساعت شروع نوبت نامعتبر است. ساعات معتبر ۱۰:۰۰ الی ۲۲:۰۰ و رأس ساعت هستند." },
         { status: 400 }
       )
     }

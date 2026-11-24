@@ -60,22 +60,30 @@ export async function GET(request: NextRequest) {
     )
 
     // Format appointments for frontend
-    const formattedToday = todayAppointments.map((a) => ({
-      id: a.id,
-      trackingCode: a.trackingCode,
-      customerName: a.customerName,
-      customerPhone: a.customerPhone,
-      serviceName: a.service.name,
-      status: a.status,
-      dateUtc: a.date.toISOString(),
-      jalaliFull: formatJalaliFull(a.date),
-      time: getTehranTimeString(a.date),
-      totalPrice: a.totalPrice,
-      depositPaid: a.depositPaid,
-      balanceDue: a.balanceDue,
-      isRemainderPaid: a.isRemainderPaid,
-      adminNotes: a.adminNotes,
-    }))
+    const formattedToday = todayAppointments.map((a) => {
+      const startTime = getTehranTimeString(a.date)
+      const endTime = getTehranTimeString(a.endDate)
+      return {
+        id: a.id,
+        trackingCode: a.trackingCode,
+        customerName: a.customerName,
+        customerPhone: a.customerPhone,
+        serviceName: a.service.name,
+        status: a.status,
+        dateUtc: a.date.toISOString(),
+        jalaliFull: formatJalaliFull(a.date),
+        time: startTime,
+        endTime,
+        slotTime: `${startTime} الی ${endTime}`,
+        createdAtTime: getTehranTimeString(a.createdAt),
+        createdAtJalali: formatJalaliFull(a.createdAt),
+        totalPrice: a.totalPrice,
+        depositPaid: a.depositPaid,
+        balanceDue: a.balanceDue,
+        isRemainderPaid: a.isRemainderPaid,
+        adminNotes: a.adminNotes,
+      }
+    })
 
     // Recent 5 system audit logs
     const recentLogs = await prisma.auditLog.findMany({

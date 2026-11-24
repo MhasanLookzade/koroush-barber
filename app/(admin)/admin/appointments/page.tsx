@@ -38,6 +38,10 @@ interface AppointmentItem {
   dateUtc: string
   jalaliFull: string
   time: string
+  endTime?: string
+  slotTime?: string
+  createdAtTime?: string
+  createdAtJalali?: string
   totalPrice: number
   depositPaid: number
   balanceDue: number
@@ -303,8 +307,15 @@ function AppointmentsContent() {
             >
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 pb-2 border-b border-[#2D332F]">
                 <div className="flex items-center gap-3">
-                  <div className="text-xl font-mono font-bold text-[#C8A96B]">
-                    {toPersianDigits(a.time)}
+                  <div className="flex flex-col">
+                    <div className="text-lg font-mono font-bold text-[#C8A96B]">
+                      {toPersianDigits(a.slotTime || a.time)}
+                    </div>
+                    {a.createdAtTime && (
+                      <span className="text-[10px] text-[#A8A39A] font-mono mt-0.5">
+                        زمان ثبت رزرو: {toPersianDigits(a.createdAtTime)}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-sm text-[#F5F1E8]">{a.customerName}</h3>

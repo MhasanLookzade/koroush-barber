@@ -358,8 +358,9 @@ async function runAcceptanceSuite() {
   // Scenario 9: Cancellation Cutoff Enforcement
   // -------------------------------------------------------------------------
   console.log("\n📌 Scenario 9: Cancellation Cutoff Policy Enforcement")
-  // Create an appointment starting in 2 hours
+  // Create an appointment starting in 2 hours snapped to top of hour (valid hourly slot)
   const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000)
+  twoHoursFromNow.setMinutes(0, 0, 0)
   const appCutoff = await prisma.appointment.create({
     data: {
       trackingCode: "KB-CUTOFF-TEST",
@@ -570,9 +571,56 @@ async function runAcceptanceSuite() {
     "Admin moderation transitions review to APPROVED status with optional admin notes"
   )
 
-  // Clean up test customer and test review
-  await prisma.review.delete({ where: { id: createdReview.id } }).catch(() => {})
-  await prisma.customer.delete({ where: { id: testCustomerWithBirth.id } }).catch(() => {})
+  // Comprehensive cleanup of all test fixtures so suite leaves the DB completely clean
+  console.log("\n🧹 Running comprehensive suite cleanup...")
+  await prisma.review.deleteMany({
+    where: { trackingCode: "KB-CUTOFF-TEST" },
+  }).catch(() => {})
+  await prisma.customer.deleteMany({
+    where: {
+      phone: {
+        in: [
+          "09121112233",
+          "09122223344",
+          "09123334455",
+          "09123335577",
+          "09124446688",
+          "09127778899",
+          "09128889900",
+          "09129990011",
+          "09129998877",
+        ],
+      },
+    },
+  }).catch(() => {})
+  await prisma.payment.deleteMany({
+    where: {
+      OR: [
+        { appointment: { trackingCode: "KB-CUTOFF-TEST" } },
+        { appointment: { customerPhone: { startsWith: "0912" } } },
+        { authority: { startsWith: "AUTH-DELAYED-" } },
+      ],
+    },
+  }).catch(() => {})
+  await prisma.appointment.deleteMany({
+    where: {
+      OR: [
+        { trackingCode: "KB-CUTOFF-TEST" },
+        { customerPhone: { in: ["09121112233", "09122223344", "09123334455", "09123335577", "09124446688", "09127778899", "09128889900", "09129990011"] } },
+      ],
+    },
+  }).catch(() => {})
+  await prisma.slotHold.deleteMany({
+    where: {
+      customerPhone: { in: ["09121112233", "09122223344", "09123334455", "09123335577", "09124446688", "09127778899", "09128889900", "09129990011"] },
+    },
+  }).catch(() => {})
+  await prisma.blockedInterval.deleteMany({
+    where: { date: testDateStr },
+  }).catch(() => {})
+  await prisma.auditLog.deleteMany({
+    where: { action: "PAYMENT_RECONCILIATION_ALERT" },
+  }).catch(() => {})
 
   // -------------------------------------------------------------------------
   // Final Results

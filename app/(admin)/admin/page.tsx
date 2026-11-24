@@ -37,6 +37,10 @@ interface AppointmentItem {
   dateUtc: string
   jalaliFull: string
   time: string
+  endTime?: string
+  slotTime?: string
+  createdAtTime?: string
+  createdAtJalali?: string
   status: string
   totalPrice: number
   depositPaid: number
@@ -324,10 +328,17 @@ export default function AdminDashboardPage() {
                   className="bg-[#141715] border border-[#242A27] hover:border-[#C8A96B]/50 p-4 rounded-2xl space-y-3 text-right"
                 >
                   <div className="flex items-center justify-between pb-2 border-b border-[#202522]">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-mono font-black text-[#E4C88E]">
-                        {toPersianDigits(a.time)}
-                      </span>
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex flex-col">
+                        <span className="text-base font-mono font-black text-[#E4C88E] tracking-tight">
+                          {toPersianDigits(a.slotTime || a.time)}
+                        </span>
+                        {a.createdAtTime && (
+                          <span className="text-[10px] text-[#8C8477] font-mono mt-0.5">
+                            زمان ثبت رزرو: {toPersianDigits(a.createdAtTime)}
+                          </span>
+                        )}
+                      </div>
                       <div>
                         <h4 className="font-bold text-sm text-[#F7F4EE]">{a.customerName}</h4>
                         <span className="text-xs font-mono text-[#8C8477] dir-ltr block" dir="ltr">
@@ -408,8 +419,15 @@ export default function AdminDashboardPage() {
                   <tbody className="divide-y divide-[#1F2522]">
                     {appointments.map((a) => (
                       <tr key={a.id} className="hover:bg-[#1A201D]/60 transition-colors">
-                        <td className="p-3.5 font-mono font-black text-sm text-[#E4C88E]">
-                          {toPersianDigits(a.time)}
+                        <td className="p-3.5">
+                          <div className="font-mono font-black text-sm text-[#E4C88E]">
+                            {toPersianDigits(a.slotTime || a.time)}
+                          </div>
+                          {a.createdAtTime && (
+                            <div className="text-[10px] text-[#8C8477] font-mono mt-0.5">
+                              زمان ثبت رزرو: {toPersianDigits(a.createdAtTime)}
+                            </div>
+                          )}
                         </td>
                         <td className="p-3.5 font-bold text-[#F7F4EE]">
                           {a.customerName}

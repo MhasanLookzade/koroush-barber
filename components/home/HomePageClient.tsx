@@ -62,11 +62,11 @@ export function HomePageClient() {
         {/* 6. Atmospheric Gallery */}
         <GallerySection />
 
-        {/* 7. Customer Testimonials & Reviews */}
-        <ReviewSystemSection />
-
-        {/* 8. Location, Daily Hours (10:00-23:00) & Contact */}
+        {/* 7. Location, Daily Hours (10:00-23:00) & Contact */}
         <LocationContactSection />
+
+        {/* 8. Customer Testimonials & Reviews */}
+        <ReviewSystemSection />
 
         {/* 9. Frequently Asked Questions */}
         <FaqSection />

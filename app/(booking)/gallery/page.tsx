@@ -248,9 +248,7 @@ export default function GalleryPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0D0F0E] text-[#F7F4EE]" dir="rtl">
-      <Header />
-
+    <div className="flex flex-col min-h-screen bg-[#0D0F0E] text-[#F7F4EE] pt-16 sm:pt-20" dir="rtl">
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative overflow-hidden py-16 lg:py-24 border-b border-[#242A27]">
@@ -487,8 +485,6 @@ export default function GalleryPage() {
           </div>
         </div>
       )}
-
-      <Footer />
     </div>
   )
 }

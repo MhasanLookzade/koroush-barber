@@ -13,8 +13,7 @@ export const metadata: Metadata = {
 export default function BookingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0D0F0E] text-[#F5F1E8]" dir="rtl">
-      <Header />
-      <main className="flex-1 pt-24 pb-16 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 pt-24 sm:pt-28 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           <Suspense
             fallback={
@@ -30,7 +29,6 @@ export default function BookingPage() {
           </Suspense>
         </div>
       </main>
-      <Footer />
     </div>
   )
 }

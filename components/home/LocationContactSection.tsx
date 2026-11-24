@@ -4,7 +4,8 @@ import { MapPin, Phone, Clock, MessageSquare, Navigation, ShieldCheck } from "lu
 
 export function LocationContactSection() {
   return (
-    <section id="contact" className="py-24 bg-[#0F1210] relative overflow-hidden" dir="rtl">
+    <section id="location" data-alias="contact" className="py-24 bg-[#0F1210] relative overflow-hidden" dir="rtl">
+      <span id="contact" className="sr-only" />
       {/* Decorative top border */}
       <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#2D332F] to-transparent" />
 

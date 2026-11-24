@@ -13,9 +13,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0D0F0E] text-[#F5F1E8]" dir="rtl">
-      <Header />
-
-      <main className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 pt-24 sm:pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto space-y-16">
           {/* Header */}
           <div className="text-center space-y-4 max-w-2xl mx-auto">
@@ -92,7 +90,7 @@ export default function AboutPage() {
               نوبت خود را در کمتر از ۱ دقیقه آنلاین رزرو کنید و در راس ساعت در سالن حضور یابید.
             </p>
             <div className="pt-2">
-              <Link href="/booking">
+              <Link href="/#booking">
                 <Button className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold px-8 py-6 rounded-xl text-base gap-2">
                   <Scissors className="w-5 h-5" />
                   رزرو نوبت آنلاین
@@ -102,8 +100,6 @@ export default function AboutPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

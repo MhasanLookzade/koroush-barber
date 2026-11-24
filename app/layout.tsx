@@ -135,7 +135,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-body antialiased bg-background text-foreground min-h-screen overflow-x-hidden">
+      <body className="font-body antialiased bg-background text-foreground min-h-screen">
         <SkipLink targets={defaultSkipTargets} />
         {children}
       </body>

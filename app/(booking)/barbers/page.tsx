@@ -83,16 +83,14 @@ const barbers = [
     specialties: ["پکیج VIP", "پکیج عریسان", "پکیج دوستانه", "مشاوره کامل"],
     rating: 4.9,
     reviewCount: 167,
-    services: ["پکیج VIP", "پکیج عریسان", "پکیج دوستانه"],
-    schedule: "شنبه تا جمعه: ۹ صبح تا ۹ شب",
+    services: ["پکیج VIP", "پکیج اختصاصی داماد", "پکیج دوستانه"],
+    schedule: "همه روزه: ۱۰ صبح تا ۱۱ شب",
   },
 ]
 
 export default function BarbersPage() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-
+    <div className="flex flex-col min-h-screen pt-16 sm:pt-20">
       <main className="flex-1">
         <section className="relative overflow-hidden py-16 lg:py-24">
           <div className="absolute inset-0 hero-pattern opacity-20" aria-hidden="true" />
@@ -213,8 +211,8 @@ export default function BarbersPage() {
             <p className="mx-auto max-w-2xl text-muted-foreground mb-8">
               هر کدام از آرایشگرهای ما در زمینه خاص خود متخصص‌اند. برای بهترین نتیجه، آرایشگری را انتخاب کنید که تخصصش با نیاز شما هم‌خوانی دارد.
             </p>
-            <Link href="/book">
-              <Button size="lg" className="btn-luxury gap-2 text-lg px-10 py-4">
+            <Link href="/#booking">
+              <Button size="lg" className="btn-luxury gap-2 text-base px-8 py-4">
                 <Scissors className="h-5 w-5" />
                 رزرو نوبت با آرایشگر
               </Button>
@@ -222,8 +220,6 @@ export default function BarbersPage() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   )
 }

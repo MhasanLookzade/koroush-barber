@@ -63,9 +63,7 @@ const servicesList = [
 export default function ServicesPage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#0D0F0E] text-[#F5F1E8]" dir="rtl">
-      <Header />
-
-      <main className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 pt-24 sm:pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto space-y-12">
           {/* Header */}
           <div className="text-center space-y-4 max-w-2xl mx-auto">
@@ -135,7 +133,7 @@ export default function ServicesPage() {
                       <span className="text-[11px] text-[#C8A96B] block">بیعانه رزرو: {formatToman(srv.deposit)}</span>
                     </div>
 
-                    <Link href="/booking">
+                    <Link href="/#booking">
                       <Button className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold px-6 py-5 rounded-xl gap-2 text-xs">
                         رزرو نوبت
                         <ArrowLeft className="w-4 h-4" />
@@ -148,8 +146,6 @@ export default function ServicesPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

@@ -26,9 +26,7 @@ export default function ContactPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0D0F0E] text-[#F5F1E8]" dir="rtl">
-      <Header />
-
-      <main className="flex-1 pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <main className="flex-1 pt-24 sm:pt-28 pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto space-y-12">
           {/* Header */}
           <div className="text-center space-y-4 max-w-2xl mx-auto">
@@ -163,8 +161,6 @@ export default function ContactPage() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

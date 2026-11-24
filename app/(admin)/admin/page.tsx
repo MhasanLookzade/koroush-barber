@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { formatToman, toPersianDigits, getTehranDateString } from "@/lib/jalali"
 import { RescheduleAppointmentModal } from "@/components/admin/RescheduleAppointmentModal"
+import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker"
 import {
   Calendar,
   Clock,
@@ -20,6 +21,7 @@ import {
   ArrowRight,
   ArrowLeft,
   RefreshCw,
+  RotateCcw,
   Sparkles,
   Phone,
   Check,
@@ -221,9 +223,24 @@ export default function AdminDashboardPage() {
     [selectedDate, weekOffset]
   )
 
-  // Initial fetch and 20-second live polling synchronization
+  // Synchronize URL with active date
+  const updateUrlDate = useCallback((dateStr: string) => {
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href)
+      if (dateStr) {
+        url.searchParams.set("date", dateStr)
+      } else {
+        url.searchParams.delete("date")
+      }
+      window.history.replaceState(null, "", url.toString())
+    }
+  }, [])
+
+  // Initial fetch: prioritize ?date= from URL query params, otherwise today in APP_TIMEZONE
   useEffect(() => {
-    fetchDashboard(false, "", 0)
+    const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null
+    const initialDate = urlParams?.get("date") || ""
+    fetchDashboard(false, initialDate, 0)
     const interval = setInterval(() => {
       fetchDashboard(true)
     }, 20000)
@@ -233,7 +250,49 @@ export default function AdminDashboardPage() {
   // Change selected day in the 7-day strip
   const handleSelectDay = (dateStr: string) => {
     setSelectedDate(dateStr)
-    fetchDashboard(false, dateStr, weekOffset)
+    updateUrlDate(dateStr)
+    fetchDashboard(false, dateStr)
+  }
+
+  // Previous Day Navigation (RTL: right arrow / previous)
+  const handlePrevDay = () => {
+    const cur = selectedDate || (data?.selectedDay.dateStr ?? getTehranDateString())
+    const [y, m, d] = cur.split("-").map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+    dt.setUTCDate(dt.getUTCDate() - 1)
+    const newDateStr = dt.toISOString().slice(0, 10)
+    setSelectedDate(newDateStr)
+    updateUrlDate(newDateStr)
+    fetchDashboard(false, newDateStr)
+  }
+
+  // Next Day Navigation (RTL: left arrow / next)
+  const handleNextDay = () => {
+    const cur = selectedDate || (data?.selectedDay.dateStr ?? getTehranDateString())
+    const [y, m, d] = cur.split("-").map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+    dt.setUTCDate(dt.getUTCDate() + 1)
+    const newDateStr = dt.toISOString().slice(0, 10)
+    setSelectedDate(newDateStr)
+    updateUrlDate(newDateStr)
+    fetchDashboard(false, newDateStr)
+  }
+
+  // Go to Today (Tehran / APP_TIMEZONE)
+  const handleGoToToday = () => {
+    const today = getTehranDateString()
+    setSelectedDate(today)
+    setWeekOffset(0)
+    updateUrlDate(today)
+    fetchDashboard(false, today, 0)
+  }
+
+  // Jalali Date Picker Selection
+  const handlePickerDateChange = (dateStr: string) => {
+    if (!dateStr) return
+    setSelectedDate(dateStr)
+    updateUrlDate(dateStr)
+    fetchDashboard(false, dateStr)
   }
 
   // Week Navigation handlers
@@ -250,9 +309,11 @@ export default function AdminDashboardPage() {
   }
 
   const handleCurrentWeek = () => {
+    const today = getTehranDateString()
     setWeekOffset(0)
-    setSelectedDate("")
-    fetchDashboard(false, "", 0)
+    setSelectedDate(today)
+    updateUrlDate(today)
+    fetchDashboard(false, today, 0)
   }
 
   // Quick Status Actions (Complete, Cancel, Remainder Paid)
@@ -619,6 +680,62 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* Day Navigation & Calendar Quick Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:p-3 rounded-2xl bg-[#0D0F0E] border border-[#202522]">
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handlePrevDay}
+              variant="outline"
+              size="sm"
+              className="border-[#2D332F] text-[#C5BDB2] hover:text-[#F7F4EE] hover:bg-[#1E2320] text-xs h-9 px-3 gap-1 cursor-pointer min-h-[44px] sm:min-h-0"
+              title="روز قبل"
+            >
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
+              <span>روز قبل</span>
+            </Button>
+
+            {!selectedDay.isToday ? (
+              <Button
+                onClick={handleGoToToday}
+                size="sm"
+                className="bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs h-9 px-3.5 gap-1.5 cursor-pointer shadow-md shadow-[#C8A96B]/10 min-h-[44px] sm:min-h-0"
+                title="بازگشت به تاریخ امروز"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>بازگشت به امروز</span>
+              </Button>
+            ) : (
+              <span className="px-3 py-1.5 rounded-lg bg-[#C8A96B]/20 border border-[#C8A96B]/40 text-[#E4C88E] text-xs font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#C8A96B]" />
+                <span>امروز</span>
+              </span>
+            )}
+
+            <Button
+              onClick={handleNextDay}
+              variant="outline"
+              size="sm"
+              className="border-[#2D332F] text-[#C5BDB2] hover:text-[#F7F4EE] hover:bg-[#1E2320] text-xs h-9 px-3 gap-1 cursor-pointer min-h-[44px] sm:min-h-0"
+              title="روز بعد"
+            >
+              <span>روز بعد</span>
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs text-[#8C8477] hidden md:inline">انتخاب مستقیم از تقویم جلالی:</span>
+            <div className="w-full sm:w-auto min-w-[200px]">
+              <JalaliDatePicker
+                value={selectedDate || selectedDay.dateStr}
+                onChange={handlePickerDateChange}
+                placeholder="انتخاب تاریخ شمسی..."
+                className="w-full sm:w-56 text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* 7-Day Interactive Selector Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 sm:gap-3">
           {week.weekDays.map((day) => {
@@ -820,8 +937,8 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* 13 Timeline Slots Stack */}
-        <div className="space-y-3">
+        {/* 13 Timeline Slots Stack - Compact & Professional */}
+        <div className="space-y-2 sm:space-y-2.5">
           {timelineSlots.map((slot) => {
             const isBooked = slot.status === "BOOKED"
             const isCompleted = slot.status === "COMPLETED"
@@ -829,131 +946,136 @@ export default function AdminDashboardPage() {
             const isBlocked = slot.status === "BLOCKED"
             const isAvailable = slot.status === "AVAILABLE"
             const isPast = slot.status === "PAST"
+            const isCancelled = slot.status === "CANCELLED"
             const app = slot.appointment
 
             return (
               <div
                 key={slot.time}
-                className={`rounded-2xl border transition-all p-3.5 sm:p-4 ${
+                className={`rounded-xl border transition-all p-2.5 sm:p-3 sm:px-4 ${
                   isBooked
-                    ? "bg-[#151A17] border-[#C8A96B]/40 hover:border-[#C8A96B] shadow-md shadow-[#C8A96B]/5"
+                    ? "bg-[#151A17] border-[#C8A96B]/40 hover:border-[#C8A96B] shadow-sm"
                     : isCompleted
-                    ? "bg-[#111714] border-blue-500/30 hover:border-blue-500/50"
+                    ? "bg-[#101613] border-blue-500/30 hover:border-blue-500/50"
                     : isBlocked
-                    ? "bg-[#181313] border-red-900/40"
+                    ? "bg-[#171212] border-red-900/40"
                     : isHeld
                     ? "bg-[#1A1710] border-amber-500/40"
+                    : isCancelled
+                    ? "bg-[#141212] border-zinc-800"
                     : isPast
-                    ? "bg-[#0F1110] border-[#1F2321] opacity-60"
-                    : "bg-[#121614] border-[#222A26] hover:border-emerald-500/40 hover:bg-[#151C17]"
+                    ? "bg-[#0E100F] border-[#1C201E] opacity-60"
+                    : "bg-[#111513] border-[#222A26] hover:border-emerald-500/40 hover:bg-[#141916]"
                 }`}
               >
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3">
                   {/* Left: Time and Status Indicator */}
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     {/* Time Pill */}
-                    <div className="flex flex-col items-center justify-center px-3 py-2 rounded-xl bg-[#0D0F0E] border border-[#222825] min-w-[100px] shrink-0">
-                      <span className="text-sm sm:text-base font-black font-mono text-[#E4C88E] tracking-tight">
+                    <div className="px-2.5 py-1 sm:py-1.5 rounded-lg bg-[#0A0C0B] border border-[#222825] shrink-0 text-center">
+                      <span className="text-xs sm:text-sm font-black font-mono text-[#E4C88E] tracking-tight">
                         {toPersianDigits(slot.slotTime)}
-                      </span>
-                      <span className="text-[10px] text-[#716A5E] font-medium mt-0.5">
-                        مدت: ۶۰ دقیقه
                       </span>
                     </div>
 
                     {/* Status Badge */}
-                    <div className="flex-1 sm:flex-initial">
+                    <div className="shrink-0">
                       {isBooked && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C8A96B]/15 border border-[#C8A96B]/30 text-[#E4C88E] text-xs font-bold">
-                          <span className="w-2 h-2 rounded-full bg-[#C8A96B]" />
-                          <span>رزرو شده (تأیید قطعی)</span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#C8A96B]/15 border border-[#C8A96B]/30 text-[#E4C88E] text-[11px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#C8A96B]" />
+                          <span>رزرو شده</span>
                         </span>
                       )}
 
                       {isCompleted && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-xs font-bold">
-                          <Check className="w-3.5 h-3.5" />
-                          <span>تکمیل و تسویه شده</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-[11px] font-bold">
+                          <Check className="w-3 h-3" />
+                          <span>تکمیل و تسویه</span>
                         </span>
                       )}
 
                       {isAvailable && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>ساعت آزاد و قابل رزرو</span>
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>آزاد</span>
                         </span>
                       )}
 
                       {isBlocked && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-950/70 border border-red-500/30 text-red-300 text-xs font-bold">
-                          <Ban className="w-3.5 h-3.5" />
-                          <span>مسدود شده ({slot.blockedInfo?.reason || "عدم حضور"})</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-950/70 border border-red-500/30 text-red-300 text-[11px] font-bold">
+                          <Ban className="w-3 h-3" />
+                          <span>مسدود</span>
                         </span>
                       )}
 
                       {isHeld && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-xs font-bold">
-                          <Clock className="w-3.5 h-3.5 animate-spin" />
-                          <span>در حال پرداخت آنلاین</span>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+                          <Clock className="w-3 h-3 animate-spin" />
+                          <span>در حال پرداخت</span>
                         </span>
                       )}
 
-                      {isPast && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-900 border border-gray-700 text-gray-400 text-xs font-medium">
-                          <span>زمان سپری شده</span>
+                      {isCancelled && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-950/50 border border-red-700/30 text-red-400 text-[11px] font-medium">
+                          <XCircle className="w-3 h-3" />
+                          <span>لغو شده</span>
+                        </span>
+                      )}
+
+                      {isPast && !isBooked && !isCompleted && !isBlocked && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-900 border border-gray-700 text-gray-400 text-[11px] font-medium">
+                          <span>سپری شده</span>
                         </span>
                       )}
                     </div>
                   </div>
 
                   {/* Middle: Appointment / Slot Details */}
-                  <div className="w-full sm:flex-1 sm:px-4">
+                  <div className="w-full sm:flex-1 sm:px-2 min-w-0">
                     {app ? (
-                      <div className="space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                          <span className="font-bold text-sm text-[#F7F4EE]">
-                            {app.customerName}
-                          </span>
-                          <a
-                            href={`tel:${app.customerPhone}`}
-                            className="text-xs font-mono text-[#C8A96B] hover:underline dir-ltr flex items-center gap-1"
-                            dir="ltr"
-                            title="تماس مستقیم با مشتری"
-                          >
-                            <Phone className="w-3 h-3" />
-                            <span>{app.customerPhone}</span>
-                          </a>
-                          <span className="text-xs text-[#8C8477]">
-                            خدمت: <strong className="text-[#F5F1E8]">{app.serviceName}</strong>
-                          </span>
-                        </div>
-
-                        {/* Financial breakdown */}
-                        <div className="flex flex-wrap items-center gap-3 text-xs">
-                          <span className="text-[#8C8477]">
-                            بیعانه پرداختی:{" "}
-                            <strong className="text-emerald-400 font-mono">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="font-bold text-[#F7F4EE] truncate max-w-[140px]">
+                          {app.customerName}
+                        </span>
+                        <a
+                          href={`tel:${app.customerPhone}`}
+                          className="font-mono text-[#C8A96B] hover:underline dir-ltr flex items-center gap-1 text-[11px]"
+                          dir="ltr"
+                          title="تماس مستقیم با مشتری"
+                        >
+                          <Phone className="w-3 h-3" />
+                          <span>{app.customerPhone}</span>
+                        </a>
+                        <span className="px-2 py-0.5 rounded bg-[#1C221F] border border-[#2D332F] text-[10px] text-[#E4C88E]">
+                          {app.serviceName}
+                        </span>
+                        <div className="flex items-center gap-2 text-[11px] text-[#8C8477]">
+                          <span>
+                            بیعانه:{" "}
+                            <strong className="text-emerald-400 font-mono font-medium">
                               {formatToman(app.depositPaid)}
                             </strong>
                           </span>
-                          <span className="text-[#8C8477]">
-                            مانده در سالن:{" "}
+                          <span>•</span>
+                          <span>
+                            مانده:{" "}
                             {app.isRemainderPaid ? (
                               <span className="text-emerald-400 font-bold">تسویه شد</span>
                             ) : (
-                              <strong className="text-[#E4C88E] font-mono">
+                              <strong className="text-[#E4C88E] font-mono font-medium">
                                 {formatToman(app.balanceDue)}
                               </strong>
                             )}
                           </span>
-                          <span className="text-[10px] text-[#716A5E] font-mono">
-                            کد رهگیری: {app.trackingCode}
-                          </span>
                         </div>
+                        <span className="text-[10px] text-[#716A5E] font-mono hidden md:inline">
+                          کد: {app.trackingCode}
+                        </span>
                       </div>
                     ) : isBlocked ? (
-                      <div className="text-xs text-[#A89E90]">
-                        دلیل مسدودی: <strong className="text-red-300">{slot.blockedInfo?.reason}</strong>
+                      <div className="text-xs text-[#A89E90] flex items-center gap-1.5">
+                        <span className="text-[#716A5E]">دلیل مسدودی:</span>
+                        <strong className="text-red-300 font-medium">{slot.blockedInfo?.reason}</strong>
                       </div>
                     ) : isHeld ? (
                       <div className="text-xs text-amber-300/80">
@@ -965,33 +1087,33 @@ export default function AdminDashboardPage() {
                         )}
                       </div>
                     ) : isAvailable ? (
-                      <div className="text-xs text-[#8C8477]">
-                        این ساعت برای رزرو توسط مشتریان از سایت یا پذیرش حضوری کاملاً خالی است.
+                      <div className="text-xs text-[#716A5E] italic">
+                        ساعت آزاد جهت رزرو آنلاین یا پذیرش حضوری
                       </div>
                     ) : (
                       <div className="text-xs text-[#716A5E]">بازه کاری سپری شده</div>
                     )}
                   </div>
 
-                  {/* Right: Direct Actions (min 44px touch targets) */}
-                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-[#202522]">
+                  {/* Right: Direct Actions (Compact, responsive, min 44px on mobile) */}
+                  <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto justify-end pt-1.5 sm:pt-0 border-t sm:border-t-0 border-[#1C221F]">
                     {/* BOOKED SLOT ACTIONS */}
                     {isBooked && app && (
                       <>
                         <Button
                           size="sm"
                           onClick={() => setDetailAppointment(app)}
-                          className="flex-1 sm:flex-initial bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs h-10 px-3 cursor-pointer"
+                          className="flex-1 sm:flex-initial bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold text-xs h-9 sm:h-8 px-2.5 cursor-pointer min-h-[44px] sm:min-h-0"
                         >
                           <User className="w-3.5 h-3.5 ml-1" />
-                          <span>مدیریت نوبت</span>
+                          <span>مدیریت</span>
                         </Button>
 
                         <Button
                           size="sm"
                           onClick={() => handleQuickStatus(app.id, "COMPLETED", true)}
                           disabled={actionLoading === app.id}
-                          className="flex-1 sm:flex-initial bg-emerald-800 hover:bg-emerald-700 text-white text-xs h-10 px-3 cursor-pointer"
+                          className="flex-1 sm:flex-initial bg-emerald-700 hover:bg-emerald-600 text-white text-xs h-9 sm:h-8 px-2.5 cursor-pointer min-h-[44px] sm:min-h-0"
                           title="تسویه مانده و ثبت تکمیل خدمت"
                         >
                           <Check className="w-3.5 h-3.5 ml-1" />
@@ -1002,7 +1124,7 @@ export default function AdminDashboardPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => setRescheduleAppointment(app)}
-                          className="border-[#2D332F] text-[#A8A39A] hover:text-[#F7F4EE] text-xs h-10 px-2.5 cursor-pointer"
+                          className="border-[#2D332F] text-[#A8A39A] hover:text-[#F7F4EE] text-xs h-9 sm:h-8 px-2 cursor-pointer min-h-[44px] sm:min-h-0"
                           title="تغییر تاریخ یا ساعت نوبت"
                         >
                           <Clock className="w-3.5 h-3.5 ml-1 text-[#C8A96B]" />
@@ -1017,10 +1139,10 @@ export default function AdminDashboardPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => setDetailAppointment(app)}
-                        className="w-full sm:w-auto border-[#2D332F] text-[#C5BDB2] hover:text-[#F7F4EE] text-xs h-10 px-3 cursor-pointer"
+                        className="w-full sm:w-auto border-[#2D332F] text-[#C5BDB2] hover:text-[#F7F4EE] text-xs h-9 sm:h-8 px-2.5 cursor-pointer min-h-[44px] sm:min-h-0"
                       >
                         <User className="w-3.5 h-3.5 ml-1 text-blue-400" />
-                        <span>مشاهده پرونده کامل</span>
+                        <span>مشاهده پرونده</span>
                       </Button>
                     )}
 
@@ -1035,10 +1157,10 @@ export default function AdminDashboardPage() {
                               setManualServiceId(catalog.services[0].id)
                             }
                           }}
-                          className="flex-1 sm:flex-initial bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs h-10 px-3.5 cursor-pointer gap-1"
+                          className="flex-1 sm:flex-initial bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs h-9 sm:h-8 px-3 cursor-pointer gap-1 min-h-[44px] sm:min-h-0"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          <span>ثبت نوبت دستی</span>
+                          <span>ثبت دستی</span>
                         </Button>
 
                         <Button
@@ -1049,10 +1171,10 @@ export default function AdminDashboardPage() {
                             setBlockReason("استراحت و ناهار")
                             setCustomReason("")
                           }}
-                          className="flex-1 sm:flex-initial border-[#2D332F] text-[#A8A39A] hover:text-red-300 hover:bg-[#1F1717] text-xs h-10 px-3 cursor-pointer gap-1"
+                          className="flex-1 sm:flex-initial border-[#2D332F] text-[#A8A39A] hover:text-red-300 hover:bg-[#1F1717] text-xs h-9 sm:h-8 px-2.5 cursor-pointer gap-1 min-h-[44px] sm:min-h-0"
                         >
                           <Lock className="w-3.5 h-3.5" />
-                          <span>مسدود کردن ساعت</span>
+                          <span>مسدودسازی</span>
                         </Button>
                       </>
                     )}
@@ -1064,10 +1186,10 @@ export default function AdminDashboardPage() {
                         variant="outline"
                         onClick={() => handleUnblock(slot.blockedInfo!.id, slot.slotTime)}
                         disabled={actionLoading === slot.blockedInfo.id}
-                        className="w-full sm:w-auto border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/40 text-xs h-10 px-3 cursor-pointer gap-1"
+                        className="w-full sm:w-auto border-emerald-500/40 text-emerald-300 hover:bg-emerald-950/40 text-xs h-9 sm:h-8 px-3 cursor-pointer gap-1 min-h-[44px] sm:min-h-0"
                       >
                         <Check className="w-3.5 h-3.5" />
-                        <span>آزاد کردن این ساعت</span>
+                        <span>آزاد کردن ساعت</span>
                       </Button>
                     )}
                   </div>

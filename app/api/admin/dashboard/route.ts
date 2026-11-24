@@ -31,8 +31,12 @@ export async function GET(request: NextRequest) {
     const todayStr = getTehranDateString()
 
     // 2. Compute 7 Days of the Week (Saturday through Friday)
-    // Calculate week based on today's reference date with weekOffset
-    const weekInfo = getJalaliWeekDays(todayStr, weekOffset)
+    const hasExplicitOffset = searchParams.has("weekOffset")
+    let weekInfo = getJalaliWeekDays(todayStr, weekOffset)
+
+    if (requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) && !hasExplicitOffset) {
+      weekInfo = getJalaliWeekDays(requestedDate, 0)
+    }
 
     // Determine selected date:
     // If requestedDate is within this week, use it;
@@ -345,7 +349,11 @@ export async function GET(request: NextRequest) {
       week: {
         weekDays: weekDaysWithCounts,
         weekTitle: weekInfo.weekTitle,
-        weekOffset,
+        weekOffset: (() => {
+          const curSat = new Date(getJalaliWeekDays(todayStr, 0).saturdayDateStr + "T12:00:00Z").getTime()
+          const targetSat = new Date(weekInfo.saturdayDateStr + "T12:00:00Z").getTime()
+          return Math.round((targetSat - curSat) / (7 * 24 * 3600 * 1000))
+        })(),
         startFormatted: weekInfo.startFormatted,
         endFormatted: weekInfo.endFormatted,
         saturdayDateStr: weekInfo.saturdayDateStr,

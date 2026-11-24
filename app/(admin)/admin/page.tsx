@@ -952,6 +952,7 @@ export default function AdminDashboardPage() {
             return (
               <div
                 key={slot.time}
+                data-slot-item={slot.time}
                 className={`rounded-xl border transition-all p-2.5 sm:p-3 sm:px-4 ${
                   isBooked
                     ? "bg-[#151A17] border-[#C8A96B]/40 hover:border-[#C8A96B] shadow-sm"

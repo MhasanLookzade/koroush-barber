@@ -4,6 +4,8 @@
  * Authoritative timezone: Asia/Tehran
  */
 
+export const APP_TIMEZONE = process.env.APP_TIMEZONE || process.env.NEXT_PUBLIC_APP_TIMEZONE || "Asia/Tehran"
+
 export const PERSIAN_MONTHS = [
   "فروردین",
   "اردیبهشت",
@@ -207,9 +209,9 @@ export function formatJalaliFull(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date
   const j = getJalaliDate(d)
   
-  // Format Tehran time
+  // Format local business time
   const timeStr = new Intl.DateTimeFormat("fa-IR", {
-    timeZone: "Asia/Tehran",
+    timeZone: APP_TIMEZONE,
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,
@@ -229,48 +231,87 @@ export function formatJalaliShort(date: Date | string): string {
 }
 
 /**
- * Get date string YYYY-MM-DD in Asia/Tehran local calendar
+ * Calculate the timezone offset in minutes for a given date in a specific timezone.
+ * Returns minutes ahead of UTC (e.g. +210 for Asia/Tehran UTC+03:30).
  */
-export function getTehranDateString(date: Date = new Date()): string {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Tehran",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date)
-  return parts // returns YYYY-MM-DD
+export function getTimezoneOffsetMinutes(date: Date = new Date(), timeZone: string = APP_TIMEZONE): number {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false,
+    })
+    const parts = formatter.formatToParts(date)
+    let year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0
+    for (const part of parts) {
+      if (part.type === "year") year = parseInt(part.value, 10)
+      if (part.type === "month") month = parseInt(part.value, 10)
+      if (part.type === "day") day = parseInt(part.value, 10)
+      if (part.type === "hour") hour = parseInt(part.value, 10)
+      if (part.type === "minute") minute = parseInt(part.value, 10)
+      if (part.type === "second") second = parseInt(part.value, 10)
+    }
+    const tzDateAsUtc = Date.UTC(year, month - 1, day, hour === 24 ? 0 : hour, minute, second)
+    const utcDateAsUtc = date.getTime()
+    return Math.round((tzDateAsUtc - utcDateAsUtc) / (60 * 1000))
+  } catch {
+    return 210 // Default fallback for Asia/Tehran UTC+3:30
+  }
 }
 
 /**
- * Create a UTC Date for a given Tehran local date and hour
+ * Get date string YYYY-MM-DD in the business timezone (default Asia/Tehran)
+ */
+export function getAppDateString(date: Date = new Date(), timeZone: string = APP_TIMEZONE): string {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date)
+  } catch {
+    return date.toISOString().slice(0, 10)
+  }
+}
+export const getTehranDateString = getAppDateString
+
+/**
+ * Convert UTC Date to local business time "HH:MM"
+ */
+export function getAppTimeString(date: Date, timeZone: string = APP_TIMEZONE): string {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(date)
+  } catch {
+    return `${date.getUTCHours().toString().padStart(2, "0")}:${date.getUTCMinutes().toString().padStart(2, "0")}`
+  }
+}
+export const getTehranTimeString = getAppTimeString
+
+/**
+ * Create a UTC Date for a given local date and hour in the business timezone
  * e.g., dateStr="2026-11-24", timeStr="14:00" -> UTC Date
  */
-export function createUtcFromTehranTime(dateStr: string, timeStr: string): Date {
-  // Asia/Tehran is currently UTC+3:30 standard time
+export function createUtcFromAppTime(dateStr: string, timeStr: string, timeZone: string = APP_TIMEZONE): Date {
   const [year, month, day] = dateStr.split("-").map(Number)
   const [hour, minute] = timeStr.split(":").map(Number)
-
-  // Use Intl to construct an exact UTC timestamp for Asia/Tehran
-  const isoLocal = `${dateStr}T${timeStr.padStart(5, "0")}:00`
-  // We can construct via a target offset or local Date:
-  // In Node.js / V8, we can determine the exact UTC instant:
-  // Tehran standard time is +03:30 (note Iran abolished daylight saving in 2022)
-  const tehranOffsetMinutes = 210 // 3 hours 30 minutes
   const localEpoch = Date.UTC(year, month - 1, day, hour, minute)
-  return new Date(localEpoch - tehranOffsetMinutes * 60 * 1000)
+  // Calculate dynamic offset for the approximate instant
+  const approxDate = new Date(localEpoch - 210 * 60 * 1000)
+  const offsetMinutes = getTimezoneOffsetMinutes(approxDate, timeZone)
+  return new Date(localEpoch - offsetMinutes * 60 * 1000)
 }
-
-/**
- * Convert UTC Date to local Tehran time "HH:MM"
- */
-export function getTehranTimeString(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone: "Asia/Tehran",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date)
-}
+export const createUtcFromTehranTime = createUtcFromAppTime
 
 /**
  * Check if Jalali year is leap year (سال کبیسه جلالی)

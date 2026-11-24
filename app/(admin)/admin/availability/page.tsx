@@ -272,7 +272,7 @@ export default function AdminAvailabilityPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-5 rounded-xl text-xs gap-1.5 min-h-[46px] cursor-pointer shadow-md"
+              className="w-full bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold py-3.5 px-4 rounded-xl text-xs gap-2 min-h-[46px] cursor-pointer shadow-lg shadow-[#C8A96B]/15 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>ثبت مسدودی (با بررسی عدم تداخل با نوبت‌ها)</span>
@@ -328,9 +328,9 @@ export default function AdminAvailabilityPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1A1E1B] hover:bg-[#C8A96B] text-[#F5F1E8] hover:text-[#0D0F0E] font-bold py-5 rounded-xl border border-[#242A27] hover:border-[#C8A96B] text-xs transition-colors min-h-[46px] cursor-pointer"
+              className="w-full bg-[#C8A96B] hover:bg-[#D9BD82] text-[#0D0F0E] font-bold py-3.5 px-4 rounded-xl text-xs gap-2 min-h-[46px] cursor-pointer shadow-lg shadow-[#C8A96B]/15 transition-all"
             >
-              ثبت وضعیت تعطیلی تاریخ
+              <span>ثبت وضعیت تعطیلی تاریخ</span>
             </Button>
           </form>
         </Card>
@@ -369,12 +369,11 @@ export default function AdminAvailabilityPage() {
 
                 <Button
                   size="sm"
-                  variant="ghost"
                   onClick={() => handleDeleteOverride(ov.id)}
-                  className="h-8 text-rose-400 hover:text-white hover:bg-rose-500/20 text-xs gap-1 min-h-[36px] cursor-pointer"
+                  className="h-8.5 px-3 bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-300 hover:text-white text-xs gap-1.5 min-h-[36px] cursor-pointer transition-colors"
                   title="لغو تعطیلی و بازگشایی سالن"
                 >
-                  <Unlock className="w-3.5 h-3.5" />
+                  <Unlock className="w-3.5 h-3.5 text-red-400" />
                   <span>بازگشایی</span>
                 </Button>
               </div>
@@ -416,12 +415,11 @@ export default function AdminAvailabilityPage() {
 
                 <Button
                   size="icon"
-                  variant="ghost"
                   onClick={() => handleDeleteBlock(b.id)}
-                  className="h-8 w-8 text-rose-400 hover:text-white hover:bg-rose-500/20 min-h-[36px] min-w-[36px] cursor-pointer"
+                  className="h-8.5 w-8.5 bg-red-950/40 hover:bg-red-900/60 border border-red-500/30 text-red-300 hover:text-white min-h-[36px] min-w-[36px] cursor-pointer transition-colors"
                   title="حذف مسدودی و آزادسازی بازه"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-4 h-4 text-red-400" />
                 </Button>
               </div>
             ))}

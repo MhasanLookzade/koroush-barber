@@ -98,10 +98,10 @@ export function Header({ id }: { id?: string }) {
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-heading font-black text-lg sm:text-2xl text-[#F7F4EE] tracking-tight leading-tight">
+              <span className="font-heading font-black text-sm xs:text-base sm:text-2xl text-[#F7F4EE] tracking-tight leading-tight whitespace-nowrap">
                 آرایشگاه کوروش
               </span>
-              <span className="text-[10px] sm:text-[11px] font-semibold text-[#C8A96B] tracking-[0.18em] uppercase font-mono leading-none">
+              <span className="hidden xs:block text-[9px] sm:text-[11px] font-semibold text-[#C8A96B] tracking-[0.18em] uppercase font-mono leading-none mt-0.5">
                 KOUROSH BARBER
               </span>
             </div>
@@ -134,27 +134,27 @@ export function Header({ id }: { id?: string }) {
           </nav>
 
           {/* 3. Action CTAs */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Tracking Button */}
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Redesigned Prominent Tracking Button: پیگیری نوبت من */}
             <Link
               href="/booking/status"
-              className={`inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all border ${
+              className={`inline-flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 sm:py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold transition-all border shadow-sm ${
                 pathname === "/booking/status"
-                  ? "bg-[#C8A96B] text-[#0D0F0E] border-[#C8A96B] shadow-md font-bold"
-                  : "text-[#E4C88E] bg-[#161A18] hover:bg-[#202522] border-[#2E3530]"
+                  ? "bg-[#C8A96B] text-[#0D0F0E] border-[#C8A96B] shadow-[0_0_15px_rgba(200,169,107,0.35)]"
+                  : "text-[#F7F4EE] bg-[#181D1A] hover:bg-[#222924] hover:text-[#E4C88E] border-[#C8A96B]/30 hover:border-[#C8A96B] active:scale-95 focus:outline-none focus:ring-2 focus:ring-[#C8A96B]/50"
               }`}
-              title="پیگیری نوبت رزرو شده"
-              aria-label="پیگیری نوبت"
+              title="پیگیری نوبت رزرو شده در آرایشگاه کوروش"
+              aria-label="پیگیری نوبت من"
             >
-              <CalendarCheck className="w-4 h-4 text-[#C8A96B]" />
-              <span className="hidden xs:inline">پیگیری نوبت</span>
+              <CalendarCheck className="w-4 h-4 text-[#C8A96B] shrink-0" />
+              <span className="whitespace-nowrap font-bold tracking-tight">پیگیری نوبت من</span>
             </Link>
 
             {/* Direct Booking CTA (Desktop & Tablet) */}
             <Link
               href={isHome ? "#booking" : "/#booking"}
               onClick={(e) => handleNavClick(e, "#booking")}
-              className="hidden sm:inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#B58B59] hover:brightness-110 shadow-[0_0_20px_rgba(200,169,107,0.3)] transition-all hover:scale-[1.02] active:scale-95"
+              className="hidden md:inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#B58B59] hover:brightness-110 shadow-[0_0_20px_rgba(200,169,107,0.3)] transition-all hover:scale-[1.02] active:scale-95"
             >
               <span>رزرو آنلاین</span>
               <ArrowUpLeft className="w-4 h-4" />
@@ -164,7 +164,7 @@ export function Header({ id }: { id?: string }) {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#141715] text-[#F7F4EE] border border-[#242A27] hover:bg-[#1E2320] transition-colors cursor-pointer"
+              className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#141715] text-[#F7F4EE] border border-[#242A27] hover:bg-[#1E2320] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C8A96B]/50"
               aria-expanded={mobileMenuOpen}
               aria-label={mobileMenuOpen ? "بستن منوی ناوبری" : "باز کردن منوی ناوبری"}
             >
@@ -201,10 +201,10 @@ export function Header({ id }: { id?: string }) {
             <Link
               href="/booking/status"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-[#E4C88E] bg-[#161A18] border border-[#2D332F] min-h-[44px]"
+              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-[#E4C88E] bg-[#161A18] border border-[#C8A96B]/30 hover:border-[#C8A96B] min-h-[44px]"
             >
               <CalendarCheck className="w-4 h-4 text-[#C8A96B]" />
-              <span>پیگیری یا لغو نوبت من</span>
+              <span>پیگیری نوبت من</span>
             </Link>
 
             <Link

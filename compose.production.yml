@@ -1,0 +1,82 @@
+# ==============================================================================
+# Koroush Barber — Production Docker Compose Configuration
+# Target Domain: koroushbarber.ir
+# Infrastructure: Next.js 14 (Standalone) + PostgreSQL 16 (Isolated Network)
+# ==============================================================================
+
+name: koroush-barber
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. PostgreSQL Database Service
+  # Security: Isolated within 'koroush-internal' network. Port 5432 is NEVER
+  # exposed to the host machine or public internet.
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: koroush-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-koroush_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-koroush_barber}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - koroush_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - koroush-internal
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 256M
+
+  # ----------------------------------------------------------------------------
+  # 2. Next.js Application Service
+  # Security: Bound to 127.0.0.1:3000 only. Upstream for host Nginx reverse proxy.
+  # ----------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: koroush-barber:production
+    container_name: koroush-app
+    restart: always
+    ports:
+      # Strictly bound to loopback interface on the host; not accessible from WAN
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${DB_USER:-koroush_user}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-koroush_barber}?schema=public
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://koroushbarber.ir}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - koroush-internal
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+        reservations:
+          memory: 512M
+
+volumes:
+  koroush_pg_data:
+    name: koroush_pg_data
+    driver: local
+
+networks:
+  koroush-internal:
+    name: koroush-internal
+    driver: bridge

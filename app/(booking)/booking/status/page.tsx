@@ -360,7 +360,8 @@ function BookingStatusContent() {
           </div>
         )}
 
-        {/* Dual Search Card */}
+        {/* Dual Search Card (Visible only before search) */}
+        {!hasSearched ? (
         <Card className="bg-[#141715] border border-[#242A27] text-[#F5F1E8] rounded-3xl shadow-2xl overflow-hidden">
           {/* Method Selector Tabs */}
           <div className="grid grid-cols-2 p-1.5 bg-[#0D0F0E] border-b border-[#242A27] gap-1.5">
@@ -528,17 +529,33 @@ function BookingStatusContent() {
             )}
           </CardContent>
         </Card>
+        ) : (
+          /* Appointment Results Section (Completely replaces search form) */
+          <div className="space-y-6 pt-2 animate-in fade-in duration-300">
+            {/* Top Back Action & Results Header */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#242A27]">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181D1A] border border-[#C8A96B]/30 text-xs font-semibold text-[#E4C88E]">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#C8A96B]" />
+                  <span>استعلام انجام شد</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold font-heading text-[#F7F4EE]">
+                  نتایج استعلام رزرواسیون ({toPersianDigits(appointments.length)})
+                </h2>
+              </div>
 
-        {/* Appointment Results Section */}
-        {hasSearched && (
-          <div className="space-y-6 pt-2">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-base sm:text-lg font-bold font-heading text-[#F7F4EE]">
-                نتایج استعلام رزرواسیون ({toPersianDigits(appointments.length)})
-              </h2>
-              {appointments.length > 0 && (
-                <span className="text-xs text-[#A8A39A]">مرتب‌شده بر اساس نزدیک‌ترین تاریخ</span>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setHasSearched(false)
+                  setError(null)
+                  window.scrollTo({ top: 0, behavior: "smooth" })
+                }}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[#1C221F] hover:bg-[#252C28] text-xs sm:text-sm font-bold text-[#E4C88E] border border-[#C8A96B]/40 hover:border-[#C8A96B] transition-all cursor-pointer min-h-[44px]"
+              >
+                <ArrowRight className="w-4 h-4 text-[#C8A96B]" />
+                <span>بازگشت به پیگیری نوبت</span>
+              </button>
             </div>
 
             {appointments.length === 0 ? (
@@ -695,6 +712,21 @@ function BookingStatusContent() {
                     </div>
                   </Card>
                 ))}
+                {/* Bottom Back Action */}
+                <div className="pt-4 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHasSearched(false)
+                      setError(null)
+                      window.scrollTo({ top: 0, behavior: "smooth" })
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-[#1C221F] hover:bg-[#252C28] text-xs sm:text-sm font-bold text-[#E4C88E] border border-[#C8A96B]/40 transition-all cursor-pointer min-h-[44px]"
+                  >
+                    <ArrowRight className="w-4 h-4 text-[#C8A96B]" />
+                    <span>بازگشت به پیگیری نوبت دیگر</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

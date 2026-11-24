@@ -141,63 +141,126 @@ export default function AdminPaymentsPage() {
           تراکنشی با این شرایط ثبت نشده است.
         </div>
       ) : (
-        <div className="bg-[#161917] border border-[#2D332F] rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-[#1F2321] text-[#A8A39A] border-b border-[#2D332F]">
-                <tr>
-                  <th className="p-3.5 font-medium">شناسه ارجاع (Authority)</th>
-                  <th className="p-3.5 font-medium">کد رهگیری نوبت</th>
-                  <th className="p-3.5 font-medium">مشتری</th>
-                  <th className="p-3.5 font-medium">مبلغ بیعانه</th>
-                  <th className="p-3.5 font-medium">درگاه</th>
-                  <th className="p-3.5 font-medium">وضعیت</th>
-                  <th className="p-3.5 font-medium">کد مرجع بانک (RefId)</th>
-                  <th className="p-3.5 font-medium">تاریخ و زمان</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#2D332F]">
-                {payments.map((p) => (
-                  <tr key={p.id} className="hover:bg-[#1F2321]/50 transition-colors">
-                    <td className="p-3.5 font-mono text-xs text-[#C8A96B] dir-ltr" dir="ltr">
-                      {p.authority}
-                    </td>
-                    <td className="p-3.5 font-mono text-[#F5F1E8] font-bold dir-ltr" dir="ltr">
+        <>
+          {/* 1. MOBILE CARD VIEW (< md) */}
+          <div className="grid grid-cols-1 gap-3 md:hidden">
+            {payments.map((p) => (
+              <Card key={p.id} className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-4 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-[#2D332F]">
+                  <div>
+                    <span className="text-[11px] text-[#8C8477] block">کد پیگیری نوبت:</span>
+                    <strong className="text-sm font-mono text-[#E4C88E]" dir="ltr">
                       {p.trackingCode}
-                    </td>
-                    <td className="p-3.5 text-[#F5F1E8]">{p.customerName}</td>
-                    <td className="p-3.5 font-mono font-bold text-green-400">
-                      {formatToman(p.amountToman)}
-                    </td>
-                    <td className="p-3.5 text-[#A8A39A]">{p.gateway}</td>
-                    <td className="p-3.5">
-                      <Badge
-                        variant="outline"
-                        className={
-                          p.status === "VERIFIED"
-                            ? "border-green-500/40 text-green-400 bg-green-500/10 text-[10px]"
-                            : p.status === "PENDING"
-                            ? "border-amber-500/40 text-amber-400 bg-amber-500/10 text-[10px]"
-                            : "border-red-500/40 text-red-400 bg-red-500/10 text-[10px]"
-                        }
-                      >
-                        {p.status === "VERIFIED"
-                          ? "تایید شده"
-                          : p.status === "PENDING"
-                          ? "در انتظار"
-                          : "ناموفق"}
-                      </Badge>
-                    </td>
-                    <td className="p-3.5 font-mono text-[#A8A39A] dir-ltr" dir="ltr">
-                      {p.refId || "—"}
-                    </td>
-                    <td className="p-3.5 text-[#A8A39A]">{p.jalaliFull}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </strong>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={
+                      p.status === "VERIFIED"
+                        ? "border-green-500/40 text-green-400 bg-green-500/10 text-[10px]"
+                        : p.status === "PENDING"
+                        ? "border-amber-500/40 text-amber-400 bg-amber-500/10 text-[10px]"
+                        : "border-red-500/40 text-red-400 bg-red-500/10 text-[10px]"
+                    }
+                  >
+                    {p.status === "VERIFIED"
+                      ? "تایید شده"
+                      : p.status === "PENDING"
+                      ? "در انتظار"
+                      : "ناموفق"}
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="p-2.5 rounded-xl bg-[#0D0F0E] border border-[#222825]">
+                    <span className="text-[#8C8477] block text-[10px] mb-0.5">نام مشتری:</span>
+                    <strong className="text-[#F5F1E8] text-xs block truncate">{p.customerName}</strong>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-[#0D0F0E] border border-[#222825]">
+                    <span className="text-[#8C8477] block text-[10px] mb-0.5">مبلغ بیعانه:</span>
+                    <strong className="text-emerald-400 text-xs block font-bold">{formatToman(p.amountToman)}</strong>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-[#8C8477] space-y-1 pt-1 bg-[#0D0F0E] p-2.5 rounded-xl border border-[#222825]">
+                  <div className="flex justify-between items-center">
+                    <span>شناسه درگاه:</span>
+                    <span className="font-mono text-[#A8A39A] text-[10px]" dir="ltr">{p.authority}</span>
+                  </div>
+                  {p.refId && (
+                    <div className="flex justify-between items-center">
+                      <span>کد مرجع شاپرک:</span>
+                      <span className="font-mono text-[#E4C88E] text-[10px]" dir="ltr">{p.refId}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center pt-1 border-t border-[#1C221F]">
+                    <span>زمان ثبت:</span>
+                    <span className="text-[#A8A39A]">{p.jalaliFull}</span>
+                  </div>
+                </div>
+              </Card>
+            ))}
           </div>
-        </div>
+
+          {/* 2. DESKTOP TABLE VIEW (>= md) */}
+          <div className="hidden md:block bg-[#161917] border border-[#2D332F] rounded-2xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-[#1F2321] text-[#A8A39A] border-b border-[#2D332F]">
+                  <tr>
+                    <th className="p-3.5 font-medium">شناسه ارجاع (Authority)</th>
+                    <th className="p-3.5 font-medium">کد رهگیری نوبت</th>
+                    <th className="p-3.5 font-medium">مشتری</th>
+                    <th className="p-3.5 font-medium">مبلغ بیعانه</th>
+                    <th className="p-3.5 font-medium">درگاه</th>
+                    <th className="p-3.5 font-medium">وضعیت</th>
+                    <th className="p-3.5 font-medium">کد مرجع بانک (RefId)</th>
+                    <th className="p-3.5 font-medium">تاریخ و زمان</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#2D332F]">
+                  {payments.map((p) => (
+                    <tr key={p.id} className="hover:bg-[#1F2321]/50 transition-colors">
+                      <td className="p-3.5 font-mono text-xs text-[#C8A96B] dir-ltr" dir="ltr">
+                        {p.authority}
+                      </td>
+                      <td className="p-3.5 font-mono text-[#F5F1E8] font-bold dir-ltr" dir="ltr">
+                        {p.trackingCode}
+                      </td>
+                      <td className="p-3.5 text-[#F5F1E8]">{p.customerName}</td>
+                      <td className="p-3.5 font-mono font-bold text-green-400">
+                        {formatToman(p.amountToman)}
+                      </td>
+                      <td className="p-3.5 text-[#A8A39A]">{p.gateway}</td>
+                      <td className="p-3.5">
+                        <Badge
+                          variant="outline"
+                          className={
+                            p.status === "VERIFIED"
+                              ? "border-green-500/40 text-green-400 bg-green-500/10 text-[10px]"
+                              : p.status === "PENDING"
+                              ? "border-amber-500/40 text-amber-400 bg-amber-500/10 text-[10px]"
+                              : "border-red-500/40 text-red-400 bg-red-500/10 text-[10px]"
+                          }
+                        >
+                          {p.status === "VERIFIED"
+                            ? "تایید شده"
+                            : p.status === "PENDING"
+                            ? "در انتظار"
+                            : "ناموفق"}
+                        </Badge>
+                      </td>
+                      <td className="p-3.5 font-mono text-[#A8A39A] dir-ltr" dir="ltr">
+                        {p.refId || "—"}
+                      </td>
+                      <td className="p-3.5 text-[#A8A39A]">{p.jalaliFull}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

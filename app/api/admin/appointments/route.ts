@@ -210,7 +210,16 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { id, status, isRemainderPaid, adminNotes, cancellationReason } = body
+    const {
+      id,
+      status,
+      isRemainderPaid,
+      adminNotes,
+      cancellationReason,
+      customerName,
+      customerPhone,
+      notes,
+    } = body
 
     if (!id) {
       return NextResponse.json({ error: "شناسه نوبت الزامی است" }, { status: 400 })
@@ -225,6 +234,11 @@ export async function PATCH(request: NextRequest) {
     if (status) updateData.status = status
     if (typeof isRemainderPaid === "boolean") updateData.isRemainderPaid = isRemainderPaid
     if (adminNotes !== undefined) updateData.adminNotes = adminNotes
+    if (notes !== undefined) updateData.notes = notes
+    if (customerName && typeof customerName === "string") updateData.customerName = customerName.trim()
+    if (customerPhone && typeof customerPhone === "string") {
+      updateData.customerPhone = normalizeIranianPhone(customerPhone)
+    }
     if (cancellationReason !== undefined) {
       updateData.cancellationReason = cancellationReason
       if (status === "CANCELLED") updateData.cancelledAt = new Date()

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { toPersianDigits, getTehranDateString, formatJalaliDateOnly } from "@/lib/jalali"
@@ -13,9 +13,10 @@ import {
   CheckCircle2,
   Plus,
   Trash2,
-  ShieldAlert,
   Ban,
-  RefreshCw,
+  CalendarX,
+  Sparkles,
+  Unlock,
 } from "lucide-react"
 
 interface BlockedInterval {
@@ -106,7 +107,7 @@ export default function AdminAvailabilityPage() {
   // Handle Delete Block Interval
   const handleDeleteBlock = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/availability?id=${id}`, { method: "DELETE" })
+      const res = await fetch(`/api/admin/availability?id=${id}&type=block`, { method: "DELETE" })
       if (!res.ok) throw new Error("خطا در حذف مسدودی")
       setSuccessMsg("بازه مسدودی حذف شد و به ظرفیت سالن بازگشت.")
       fetchAvailability()
@@ -145,13 +146,25 @@ export default function AdminAvailabilityPage() {
     }
   }
 
+  // Handle Delete / Cancel Date Closure Override
+  const handleDeleteOverride = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/availability?id=${id}&type=override`, { method: "DELETE" })
+      if (!res.ok) throw new Error("خطا در حذف تعطیلی")
+      setSuccessMsg("تعطیلی تاریخ حذف شد و سالن در این روز بازگشایی گردید.")
+      fetchAvailability()
+    } catch {
+      setError("خطا در حذف تعطیلی تاریخ")
+    }
+  }
+
   return (
-    <div className="space-y-8" dir="rtl">
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto" dir="rtl">
       <div>
-        <h1 className="text-2xl font-bold font-heading text-[#F5F1E8]">
+        <h1 className="text-xl sm:text-2xl font-bold font-heading text-[#F5F1E8]">
           ساعات کاری، مسدودی‌ها و تعطیلات سالن
         </h1>
-        <p className="text-xs text-[#A8A39A] mt-1">
+        <p className="text-xs text-[#8C8477] mt-1">
           مدیریت بازه‌های استراحت، مرخصی و تعطیلات با بررسی خودکار عدم تداخل با نوبت‌های تایید شده
         </p>
       </div>
@@ -164,40 +177,50 @@ export default function AdminAvailabilityPage() {
       )}
 
       {successMsg && (
-        <div role="status" className="p-4 rounded-xl bg-green-950/40 border border-green-500/40 text-green-200 text-xs flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 shrink-0 text-green-400" />
+        <div role="status" className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
           <span>{successMsg}</span>
         </div>
       )}
 
       {/* Standard Operating Hours Overview */}
-      <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-6 rounded-2xl space-y-4">
+      <Card className="bg-[#141715] border border-[#242A27] text-[#F5F1E8] p-4 sm:p-6 rounded-2xl space-y-4">
         <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-[#C8A96B]" />
-          <h2 className="text-base font-bold font-heading">برنامه کاری استاندارد سالن (۷ روز هفته)</h2>
+          <div className="w-8 h-8 rounded-lg bg-[#C8A96B]/15 border border-[#C8A96B]/30 flex items-center justify-center">
+            <Clock className="w-4 h-4 text-[#C8A96B]" />
+          </div>
+          <div>
+            <h2 className="text-sm sm:text-base font-bold font-heading">برنامه کاری استاندارد سالن (۷ روز هفته)</h2>
+            <p className="text-[11px] text-[#8C8477]">ساعت پذیرش نوبت‌های حضوری و آنلاین در تایم‌زون رسمی تهران</p>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2 text-center text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-center text-xs">
           {["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"].map((day) => (
-            <div key={day} className="p-3 rounded-xl bg-[#1F2321] border border-[#2D332F] space-y-1">
+            <div key={day} className="p-3 rounded-xl bg-[#1A1E1B] border border-[#242A27] space-y-1">
               <span className="font-bold text-[#F5F1E8] block">{day}</span>
               <span className="font-mono text-[#C8A96B] text-[11px] block">۱۰:۰۰ - ۲۳:۰۰</span>
-              <span className="text-[10px] text-green-400">۱۳ بازه فعال</span>
+              <span className="text-[10px] text-emerald-400 font-medium">۱۳ بازه فعال</span>
             </div>
           ))}
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6 items-start">
         {/* Form: Block Interval */}
-        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-6 rounded-2xl space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-[#2D332F]">
-            <Ban className="w-4 h-4 text-amber-400" />
-            <h3 className="font-bold text-sm">مسدودسازی بازه زمانی خاص (استراحت / مرخصی)</h3>
+        <Card className="bg-[#141715] border border-[#242A27] text-[#F5F1E8] p-4 sm:p-6 rounded-2xl space-y-4 overflow-visible">
+          <div className="flex items-center gap-2 pb-3 border-b border-[#242A27]">
+            <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+              <Ban className="w-4 h-4 text-amber-400" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-[#F5F1E8]">مسدودسازی بازه زمانی خاص (استراحت / مرخصی)</h3>
+              <p className="text-[11px] text-[#8C8477]">خارج کردن بازه‌های مشخص از فرآیند رزرواسیون آنلاین</p>
+            </div>
           </div>
 
           <form onSubmit={handleCreateBlock} className="space-y-4 text-xs">
-            <div className="space-y-1">
-              <label className="text-[#A8A39A] block">تاریخ مورد نظر (جلالی):</label>
+            <div className="space-y-1.5">
+              <label className="text-[#8C8477] block font-medium">تاریخ مورد نظر (تقویم جلالی):</label>
               <JalaliDatePicker
                 value={blockDate}
                 onChange={(d) => setBlockDate(d)}
@@ -207,12 +230,12 @@ export default function AdminAvailabilityPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[#A8A39A] block">از ساعت:</label>
+              <div className="space-y-1.5">
+                <label className="text-[#8C8477] block font-medium">از ساعت:</label>
                 <select
                   value={blockStartTime}
                   onChange={(e) => setBlockStartTime(e.target.value)}
-                  className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] focus:outline-none"
+                  className="w-full bg-[#1A1E1B] border border-[#242A27] rounded-xl px-3 py-2.5 text-[#F5F1E8] focus:outline-none focus:ring-1 focus:ring-[#C8A96B] min-h-[44px]"
                 >
                   {["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"].map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -220,12 +243,12 @@ export default function AdminAvailabilityPage() {
                 </select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[#A8A39A] block">تا ساعت:</label>
+              <div className="space-y-1.5">
+                <label className="text-[#8C8477] block font-medium">تا ساعت:</label>
                 <select
                   value={blockEndTime}
                   onChange={(e) => setBlockEndTime(e.target.value)}
-                  className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] focus:outline-none"
+                  className="w-full bg-[#1A1E1B] border border-[#242A27] rounded-xl px-3 py-2.5 text-[#F5F1E8] focus:outline-none focus:ring-1 focus:ring-[#C8A96B] min-h-[44px]"
                 >
                   {["11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"].map((t) => (
                     <option key={t} value={t}>{t}</option>
@@ -234,38 +257,44 @@ export default function AdminAvailabilityPage() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[#A8A39A] block">علت مسدودی:</label>
+            <div className="space-y-1.5">
+              <label className="text-[#8C8477] block font-medium">علت مسدودی:</label>
               <input
                 type="text"
                 required
                 value={blockReason}
                 onChange={(e) => setBlockReason(e.target.value)}
-                placeholder="مثال: استراحت ناهار یا ضدعفونی"
-                className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] focus:outline-none"
+                placeholder="مثال: استراحت ناهار یا ضدعفونی ابزار"
+                className="w-full bg-[#1A1E1B] border border-[#242A27] rounded-xl px-3 py-2.5 text-[#F5F1E8] focus:outline-none focus:ring-1 focus:ring-[#C8A96B] min-h-[44px]"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-5 rounded-xl text-xs gap-1.5"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold py-5 rounded-xl text-xs gap-1.5 min-h-[46px] cursor-pointer shadow-md"
             >
               <Plus className="w-4 h-4" />
-              ثبت مسدودی (با بررسی عدم تداخل)
+              <span>ثبت مسدودی (با بررسی عدم تداخل با نوبت‌ها)</span>
             </Button>
           </form>
         </Card>
 
         {/* Form: Full-Day Holiday Override */}
-        <Card className="bg-[#161917] border-[#2D332F] text-[#F5F1E8] p-6 rounded-2xl space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-[#2D332F]">
-            <Calendar className="w-4 h-4 text-[#C8A96B]" />
-            <h3 className="font-bold text-sm">تنظیم تعطیلی کامل تاریخ خاص (مناسبت‌ها / تعطیلات)</h3>
+        <Card className="bg-[#141715] border border-[#242A27] text-[#F5F1E8] p-4 sm:p-6 rounded-2xl space-y-4 overflow-visible">
+          <div className="flex items-center gap-2 pb-3 border-b border-[#242A27]">
+            <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
+              <CalendarX className="w-4 h-4 text-rose-400" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-[#F5F1E8]">تنظیم تعطیلی کامل تاریخ خاص (مناسبت‌ها / تعطیلات)</h3>
+              <p className="text-[11px] text-[#8C8477]">غیرفعال‌سازی رزرو آنلاین برای کل یک روز مشخص</p>
+            </div>
           </div>
 
           <form onSubmit={handleCreateOverride} className="space-y-4 text-xs">
-            <div className="space-y-1">
-              <label className="text-[#A8A39A] block">تاریخ مورد نظر (جلالی):</label>
+            <div className="space-y-1.5">
+              <label className="text-[#8C8477] block font-medium">تاریخ مورد نظر (تقویم جلالی):</label>
               <JalaliDatePicker
                 value={overrideDate}
                 onChange={(d) => setOverrideDate(d)}
@@ -274,31 +303,32 @@ export default function AdminAvailabilityPage() {
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[#A8A39A] block">علت تعطیلی سالن:</label>
+            <div className="space-y-1.5">
+              <label className="text-[#8C8477] block font-medium">علت تعطیلی سالن:</label>
               <input
                 type="text"
                 required
                 value={overrideReason}
                 onChange={(e) => setOverrideReason(e.target.value)}
-                placeholder="مثال: تعطیل رسمی یا تعمیرات داخلی"
-                className="w-full bg-[#1F2321] border border-[#2D332F] rounded-xl px-3 py-2 text-[#F5F1E8] focus:outline-none"
+                placeholder="مثال: تعطیل رسمی تقویم یا تعمیرات داخلی"
+                className="w-full bg-[#1A1E1B] border border-[#242A27] rounded-xl px-3 py-2.5 text-[#F5F1E8] focus:outline-none focus:ring-1 focus:ring-[#C8A96B] min-h-[44px]"
               />
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer text-[#A8A39A]">
+            <label className="flex items-center gap-2.5 cursor-pointer text-[#8C8477] hover:text-[#F5F1E8] transition-colors py-1">
               <input
                 type="checkbox"
                 checked={overrideClosed}
                 onChange={(e) => setOverrideClosed(e.target.checked)}
-                className="rounded bg-[#1F2321] border-[#2D332F]"
+                className="rounded w-4 h-4 bg-[#1A1E1B] border-[#242A27] text-[#C8A96B] focus:ring-0 cursor-pointer"
               />
-              <span>سالن در این تاریخ کاملاً تعطیل باشد (عدم امکان رزرو نوبت)</span>
+              <span className="text-xs">سالن در این تاریخ کاملاً تعطیل باشد (رد خودکار رزروها)</span>
             </label>
 
             <Button
               type="submit"
-              className="w-full bg-[#1F2321] hover:bg-[#C8A96B] text-[#F5F1E8] hover:text-[#0D0F0E] font-bold py-5 rounded-xl border border-[#2D332F] text-xs transition-colors"
+              disabled={loading}
+              className="w-full bg-[#1A1E1B] hover:bg-[#C8A96B] text-[#F5F1E8] hover:text-[#0D0F0E] font-bold py-5 rounded-xl border border-[#242A27] hover:border-[#C8A96B] text-xs transition-colors min-h-[46px] cursor-pointer"
             >
               ثبت وضعیت تعطیلی تاریخ
             </Button>
@@ -306,14 +336,65 @@ export default function AdminAvailabilityPage() {
         </Card>
       </div>
 
+      {/* Active Full-Day Overrides / Holidays */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm sm:text-base font-bold font-heading text-[#F5F1E8] flex items-center gap-2">
+            <CalendarX className="w-4 h-4 text-rose-400" />
+            <span>روزهای تعطیل و مناسبت‌های ثبت‌شده ({toPersianDigits(overrides.length)})</span>
+          </h3>
+          <span className="text-[11px] text-[#8C8477]">غیرفعال در تقویم عمومی رزرو</span>
+        </div>
+
+        {overrides.length === 0 ? (
+          <div className="p-5 text-center bg-[#141715] border border-[#242A27] rounded-2xl text-xs text-[#8C8477]">
+            هیچ روز تعطیلی ثبت نشده است؛ تمامی روزها طبق برنامه کاری فعال هستند.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+            {overrides.map((ov) => (
+              <div
+                key={ov.id}
+                className="bg-[#141715] border border-[#242A27] hover:border-rose-500/30 p-4 rounded-xl flex items-center justify-between text-xs transition-colors"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-[#F5F1E8]">{formatJalaliDateOnly(ov.date)}</span>
+                    <Badge variant="outline" className="bg-rose-950/40 border-rose-500/40 text-rose-400 text-[10px] px-1.5 py-0">
+                      {ov.isClosed ? "تعطیل کامل سالن" : "ساعات ویژه"}
+                    </Badge>
+                  </div>
+                  <span className="text-[11px] text-[#8C8477] block">{ov.reason || "تعطیلی سالن"}</span>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleDeleteOverride(ov.id)}
+                  className="h-8 text-rose-400 hover:text-white hover:bg-rose-500/20 text-xs gap-1 min-h-[36px] cursor-pointer"
+                  title="لغو تعطیلی و بازگشایی سالن"
+                >
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>بازگشایی</span>
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Active Blocked Intervals List */}
-      <div className="space-y-4">
-        <h3 className="text-base font-bold font-heading text-[#F5F1E8]">
-          بازه‌های مسدود شده فعال ({toPersianDigits(blockedIntervals.length)})
-        </h3>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm sm:text-base font-bold font-heading text-[#F5F1E8] flex items-center gap-2">
+            <Ban className="w-4 h-4 text-amber-400" />
+            <span>بازه‌های مسدود شده فعال ({toPersianDigits(blockedIntervals.length)})</span>
+          </h3>
+          <span className="text-[11px] text-[#8C8477]">ساعات استراحت و خارج از دسترسی</span>
+        </div>
 
         {blockedIntervals.length === 0 ? (
-          <div className="p-6 text-center bg-[#161917] border border-[#2D332F] rounded-2xl text-xs text-[#A8A39A]">
+          <div className="p-5 text-center bg-[#141715] border border-[#242A27] rounded-2xl text-xs text-[#8C8477]">
             هیچ بازه مسدود شده‌ای ثبت نشده است؛ تمامی ساعات کاری طبق برنامه باز هستند.
           </div>
         ) : (
@@ -321,23 +402,23 @@ export default function AdminAvailabilityPage() {
             {blockedIntervals.map((b) => (
               <div
                 key={b.id}
-                className="bg-[#161917] border border-[#2D332F] p-4 rounded-xl flex items-center justify-between text-xs"
+                className="bg-[#141715] border border-[#242A27] hover:border-amber-500/30 p-4 rounded-xl flex items-center justify-between text-xs transition-colors"
               >
-                <div>
+                <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-[#F5F1E8]">{formatJalaliDateOnly(b.date)}</span>
-                    <span className="font-mono text-[#C8A96B] text-[11px] dir-ltr" dir="ltr">
+                    <span className="font-mono text-[#C8A96B] text-[11px] dir-ltr font-bold" dir="ltr">
                       {toPersianDigits(b.startTime)} - {toPersianDigits(b.endTime)}
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#A8A39A] block mt-1">{b.reason}</span>
+                  <span className="text-[11px] text-[#8C8477] block">{b.reason}</span>
                 </div>
 
                 <Button
                   size="icon"
                   variant="ghost"
                   onClick={() => handleDeleteBlock(b.id)}
-                  className="h-8 w-8 text-red-400 hover:bg-red-500/10"
+                  className="h-8 w-8 text-rose-400 hover:text-white hover:bg-rose-500/20 min-h-[36px] min-w-[36px] cursor-pointer"
                   title="حذف مسدودی و آزادسازی بازه"
                 >
                   <Trash2 className="w-4 h-4" />

@@ -167,9 +167,15 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
+    const type = searchParams.get("type") // "override" | "block"
 
     if (!id) {
       return NextResponse.json({ error: "شناسه الزامی است" }, { status: 400 })
+    }
+
+    if (type === "override") {
+      await prisma.scheduleOverride.delete({ where: { id } })
+      return NextResponse.json({ success: true, message: "تعطیلی تاریخ حذف شد و سالن در این روز بازگشایی گردید." })
     }
 
     await prisma.blockedInterval.delete({ where: { id } })
@@ -177,6 +183,6 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true, message: "بازه مسدود شده حذف شد" })
   } catch (error) {
     console.error("Delete blocked interval error:", error)
-    return NextResponse.json({ error: "خطا در حذف بازه مسدودی" }, { status: 500 })
+    return NextResponse.json({ error: "خطا در حذف بازه یا تعطیلی" }, { status: 500 })
   }
 }

@@ -504,7 +504,7 @@ function BookingSuccessContent() {
               <ul className="space-y-2 text-xs text-[#A8A39A] leading-relaxed">
                 <li className="flex items-start gap-2">
                   <span className="text-[#C8A96B] font-bold">•</span>
-                  <span>پیشنهاد می‌شود ۱۰ دقیقه پیش از ساعت مقرر جهت پذیرایی اسپرسو تازه برشته‌شده و استراحت در سالن حضور یابید.</span>
+                  <span>پیشنهاد می‌شود ۱۰ دقیقه پیش از ساعت مقرر جهت مشاوره اختصاصی فرم چهره در سالن حضور یابید.</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#C8A96B] font-bold">•</span>

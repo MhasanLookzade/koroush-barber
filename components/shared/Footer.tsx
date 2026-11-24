@@ -36,11 +36,6 @@ export function Footer({ id }: { id?: string }) {
             <p className="text-xs sm:text-sm text-[#8C8477] leading-relaxed">
               استایل حرفه‌ای، دقیقاً سر وقت شما. سالن تخصصی پیرایش و استایل آقایان با نوبت‌های ۶۰ دقیقه‌ای اختصاصی و رزرو آنلاین.
             </p>
-
-            <div className="flex items-center gap-2 text-xs text-[#E4C88E]">
-              <ShieldCheck className="w-4 h-4 text-[#C8A96B] shrink-0" />
-              <span>پایبند به استانداردهای بهداشتی هتل ۵ ستاره</span>
-            </div>
           </div>
 
           {/* Col 2: Navigation Links */}
@@ -97,7 +92,7 @@ export function Footer({ id }: { id?: string }) {
               </li>
               <li>
                 <span className="text-[#8C8477] block text-xs leading-relaxed">
-                  حضور ۱۰ دقیقه زودتر در سالن جهت پذیرایی اسپرسو و مشاوره استایل توصیه می‌شود.
+                  حضور ۱۰ دقیقه زودتر در سالن جهت مشاوره دقیق استایل و فرم چهره توصیه می‌شود.
                 </span>
               </li>
             </ul>

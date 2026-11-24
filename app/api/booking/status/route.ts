@@ -53,6 +53,8 @@ export async function GET(request: NextRequest) {
       depositPaid: a.depositPaid,
       balanceDue: a.balanceDue,
       isRemainderPaid: a.isRemainderPaid,
+      paymentRefId: a.payments[0]?.refId || null,
+      paymentAuthority: a.payments[0]?.authority || null,
       createdAt: a.createdAt.toISOString(),
     }))
 

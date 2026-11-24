@@ -70,10 +70,10 @@ export function HeroSection() {
 
               <button
                 type="button"
-                onClick={() => scrollTo("#services")}
-                className="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-base font-semibold text-[#E6E0D6] bg-[#161A18] hover:bg-[#202522] border border-[#2B332F] transition-all cursor-pointer"
+                onClick={() => scrollTo("#comparison")}
+                className="inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-base font-semibold text-[#E6E0D6] bg-[#161A18] hover:bg-[#202522] border border-[#2B332F] transition-all cursor-pointer min-h-[48px]"
               >
-                <span>مشاهده تعرفه خدمات</span>
+                <span>مشاهده نتایج قبل و بعد</span>
                 <ArrowLeft className="w-4 h-4 text-[#C8A96B]" />
               </button>
             </div>

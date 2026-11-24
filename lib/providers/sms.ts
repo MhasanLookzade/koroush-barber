@@ -8,15 +8,18 @@ export interface BookingSummary {
   serviceName: string
   jalaliDate: string
   time: string
-  depositPaid: number
-  balanceDue: number
+  depositPaid?: number
+  balanceDue?: number
 }
 
 export interface SmsProvider {
   name: string
+  isConfigured(): boolean
   sendOtp(phone: string, code: string): Promise<{ success: boolean; messageId?: string; error?: string }>
   sendBookingConfirmation(phone: string, summary: BookingSummary): Promise<{ success: boolean; messageId?: string; error?: string }>
   sendReminder(phone: string, summary: BookingSummary): Promise<{ success: boolean; messageId?: string; error?: string }>
+  sendBirthdayGreeting(phone: string, customerName?: string): Promise<{ success: boolean; messageId?: string; error?: string }>
+  sendCustomSms(phone: string, message: string): Promise<{ success: boolean; messageId?: string; error?: string }>
 }
 
 /**
@@ -59,6 +62,10 @@ class MockSmsProviderImpl implements SmsProvider {
   public static sentOtps: Map<string, { code: string; sentAt: Date }> = new Map()
   public static sentMessages: Array<{ phone: string; message: string; type: string; sentAt: Date }> = []
 
+  isConfigured(): boolean {
+    return true
+  }
+
   async sendOtp(phone: string, code: string) {
     const normalized = normalizeIranianPhone(phone)
     MockSmsProviderImpl.sentOtps.set(normalized, { code, sentAt: new Date() })
@@ -73,7 +80,7 @@ class MockSmsProviderImpl implements SmsProvider {
 
   async sendBookingConfirmation(phone: string, summary: BookingSummary) {
     const normalized = normalizeIranianPhone(phone)
-    const text = `کوروش باربر\nنوبت شما با کد پیگیری ${summary.trackingCode} تایید شد.\nخدمت: ${summary.serviceName}\nزمان: ${summary.jalaliDate} ساعت ${summary.time}\nبیعانه: ${summary.depositPaid.toLocaleString("fa-IR")} تومان\nمانده در سالن: ${summary.balanceDue.toLocaleString("fa-IR")} تومان`
+    const text = `کوروش باربر\nنوبت شما با موفقیت ثبت شد.\nخدمت: ${summary.serviceName}\nتاریخ: ${summary.jalaliDate}\nساعت: ${summary.time}\nکد پیگیری: ${summary.trackingCode}\nمشتاق دیدارتون هستیم.`
     
     MockSmsProviderImpl.sentMessages.push({
       phone: normalized,
@@ -86,7 +93,7 @@ class MockSmsProviderImpl implements SmsProvider {
 
   async sendReminder(phone: string, summary: BookingSummary) {
     const normalized = normalizeIranianPhone(phone)
-    const text = `یادآوری نوبت کوروش باربر\nفردا در ساعت ${summary.time} منتظر شما هستیم.\nکد پیگیری: ${summary.trackingCode}`
+    const text = `یادآوری نوبت کوروش باربر\nساعت ${summary.time} در تاریخ ${summary.jalaliDate} منتظر دیدار شما هستیم.\nکد پیگیری: ${summary.trackingCode}`
     
     MockSmsProviderImpl.sentMessages.push({
       phone: normalized,
@@ -95,6 +102,30 @@ class MockSmsProviderImpl implements SmsProvider {
       sentAt: new Date(),
     })
     return { success: true, messageId: `mock-rem-${Date.now()}` }
+  }
+
+  async sendBirthdayGreeting(phone: string, customerName?: string) {
+    const normalized = normalizeIranianPhone(phone)
+    const text = `کوروش باربر\n${customerName ? `${customerName} عزیز، ` : ""}تولدت مبارک! 🎉\nامیدواریم سال جدید زندگیت پر از اتفاق‌های خوب، سلامتی و موفقیت باشه.\nخوشحالیم که همراه کوروش باربر هستی.`
+    
+    MockSmsProviderImpl.sentMessages.push({
+      phone: normalized,
+      message: text,
+      type: "BIRTHDAY",
+      sentAt: new Date(),
+    })
+    return { success: true, messageId: `mock-bday-${Date.now()}` }
+  }
+
+  async sendCustomSms(phone: string, message: string) {
+    const normalized = normalizeIranianPhone(phone)
+    MockSmsProviderImpl.sentMessages.push({
+      phone: normalized,
+      message,
+      type: "CUSTOM",
+      sentAt: new Date(),
+    })
+    return { success: true, messageId: `mock-custom-${Date.now()}` }
   }
 
   // Helper for automated testing only
@@ -118,6 +149,10 @@ class KavenegarSmsProviderImpl implements SmsProvider {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || process.env.KAVENEGAR_API_KEY || ""
+  }
+
+  isConfigured(): boolean {
+    return Boolean(this.apiKey && this.apiKey.trim().length > 0)
   }
 
   async sendOtp(phone: string, code: string) {
@@ -144,7 +179,7 @@ class KavenegarSmsProviderImpl implements SmsProvider {
     if (!this.apiKey) return { success: false, error: "Kavenegar API key not configured" }
     const normalized = normalizeIranianPhone(phone)
     try {
-      const message = `کوروش باربر\nنوبت شما با کد پیگیری ${summary.trackingCode} تایید شد.\nخدمت: ${summary.serviceName}\nزمان: ${summary.jalaliDate} ساعت ${summary.time}`
+      const message = `کوروش باربر\nنوبت شما با موفقیت ثبت شد.\nخدمت: ${summary.serviceName}\nتاریخ: ${summary.jalaliDate}\nساعت: ${summary.time}\nکد پیگیری: ${summary.trackingCode}\nمشتاق دیدارتون هستیم.`
       const url = `https://api.kavenegar.com/v1/${this.apiKey}/sms/send.json`
       const response = await fetch(url, {
         method: "POST",
@@ -166,7 +201,7 @@ class KavenegarSmsProviderImpl implements SmsProvider {
     if (!this.apiKey) return { success: false, error: "Kavenegar API key not configured" }
     const normalized = normalizeIranianPhone(phone)
     try {
-      const message = `یادآوری نوبت کوروش باربر\nساعت ${summary.time} منتظر شما هستیم.\nکد پیگیری: ${summary.trackingCode}`
+      const message = `یادآوری نوبت کوروش باربر\nساعت ${summary.time} در تاریخ ${summary.jalaliDate} منتظر دیدار شما هستیم.\nکد پیگیری: ${summary.trackingCode}`
       const url = `https://api.kavenegar.com/v1/${this.apiKey}/sms/send.json`
       const response = await fetch(url, {
         method: "POST",
@@ -183,6 +218,49 @@ class KavenegarSmsProviderImpl implements SmsProvider {
       return { success: false }
     }
   }
+
+  async sendBirthdayGreeting(phone: string, customerName?: string) {
+    if (!this.apiKey) return { success: false, error: "Kavenegar API key not configured" }
+    const normalized = normalizeIranianPhone(phone)
+    try {
+      const message = `کوروش باربر\n${customerName ? `${customerName} عزیز، ` : ""}تولدت مبارک! 🎉\nامیدواریم سال جدید زندگیت پر از اتفاق‌های خوب، سلامتی و موفقیت باشه.\nخوشحالیم که همراه کوروش باربر هستی.`
+      const url = `https://api.kavenegar.com/v1/${this.apiKey}/sms/send.json`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          receptor: normalized,
+          sender: process.env.KAVENEGAR_SENDER || "",
+          message,
+        }),
+      })
+      const data = await response.json()
+      return { success: data.return?.status === 200, messageId: String(data.entries?.[0]?.messageid) }
+    } catch (err: unknown) {
+      return { success: false, error: err instanceof Error ? err.message : "SMS send failed" }
+    }
+  }
+
+  async sendCustomSms(phone: string, message: string) {
+    if (!this.apiKey) return { success: false, error: "Kavenegar API key not configured" }
+    const normalized = normalizeIranianPhone(phone)
+    try {
+      const url = `https://api.kavenegar.com/v1/${this.apiKey}/sms/send.json`
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          receptor: normalized,
+          sender: process.env.KAVENEGAR_SENDER || "",
+          message,
+        }),
+      })
+      const data = await response.json()
+      return { success: data.return?.status === 200, messageId: String(data.entries?.[0]?.messageid) }
+    } catch (err: unknown) {
+      return { success: false, error: err instanceof Error ? err.message : "SMS send failed" }
+    }
+  }
 }
 
 export const MockSmsProvider = MockSmsProviderImpl
@@ -193,4 +271,14 @@ export function getSmsProvider(): SmsProvider {
     return new KavenegarSmsProviderImpl()
   }
   return new MockSmsProviderImpl()
+}
+
+export function getProviderStatus(): { name: string; isConfigured: boolean; mode: string } {
+  const provider = getSmsProvider()
+  const mode = process.env.SMS_PROVIDER || "MOCK"
+  return {
+    name: provider.name,
+    isConfigured: provider.isConfigured(),
+    mode: mode.toUpperCase(),
+  }
 }

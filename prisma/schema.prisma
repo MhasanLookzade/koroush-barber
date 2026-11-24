@@ -187,7 +187,9 @@ model Customer {
   passwordHash  String?
   avatar        String?
   notes         String?
+  adminNotes    String?
   birthDate     String?       // Optional Jalali birth date e.g. "1370/05/20"
+  smsConsent    Boolean       @default(true)
   isVerified    Boolean       @default(true)
   lastLoginAt   DateTime?
   createdAt     DateTime      @default(now())
@@ -255,17 +257,21 @@ model AuditLog {
 }
 
 model NotificationJob {
-  id          String    @id @default(cuid())
-  phone       String
-  type        String    // "OTP", "CONFIRMATION", "REMINDER", "RECONCILIATION_ALERT"
-  message     String
-  status      String    @default("PENDING") // PENDING, SENT, FAILED
-  error       String?
-  scheduledAt DateTime  @default(now())
-  sentAt      DateTime?
-  createdAt   DateTime  @default(now())
+  id            String    @id @default(cuid())
+  phone         String
+  recipientName String?
+  type          String    // "OTP", "CONFIRMATION", "REMINDER", "BIRTHDAY", "CANCEL", "CUSTOM", "RECONCILIATION_ALERT"
+  message       String
+  status        String    @default("PENDING") // PENDING, SENT, FAILED
+  error         String?
+  provider      String    @default("MOCK") // MOCK, KAVENEGAR
+  scheduledAt   DateTime  @default(now())
+  sentAt        DateTime?
+  createdAt     DateTime  @default(now())
 
   @@index([status, scheduledAt])
+  @@index([type])
+  @@index([phone])
 }
 
 model Review {

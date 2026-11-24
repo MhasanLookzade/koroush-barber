@@ -558,25 +558,54 @@ export async function handlePaymentCallback(params: {
       data: { status: "CONVERTED" },
     })
 
-    // Dispatch confirmation SMS
-    const sms = getSmsProvider()
-    const jalaliParts = new Intl.DateTimeFormat("fa-IR", {
-      timeZone: "Asia/Tehran",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(updatedApp.date)
+    // Dispatch confirmation SMS & persist notification event (safely isolated from transaction success)
+    try {
+      const sms = getSmsProvider()
+      const jalaliParts = new Intl.DateTimeFormat("fa-IR", {
+        timeZone: "Asia/Tehran",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }).format(updatedApp.date)
 
-    const tehranTime = getTehranTimeString(updatedApp.date)
+      const tehranTime = getTehranTimeString(updatedApp.date)
+      const confirmationText = `کوروش باربر\nنوبت شما با موفقیت ثبت شد.\nخدمت: ${updatedApp.service.name}\nتاریخ: ${jalaliParts}\nساعت: ${tehranTime}\nکد پیگیری: ${updatedApp.trackingCode}\nمشتاق دیدارتون هستیم.`
 
-    await sms.sendBookingConfirmation(updatedApp.customerPhone, {
-      trackingCode: updatedApp.trackingCode,
-      serviceName: updatedApp.service.name,
-      jalaliDate: jalaliParts,
-      time: tehranTime,
-      depositPaid: updatedApp.depositPaid,
-      balanceDue: updatedApp.balanceDue,
-    })
+      // Idempotency: verify no confirmation notification has already been logged for this tracking code
+      const existingNotif = await tx.notificationJob.findFirst({
+        where: {
+          phone: updatedApp.customerPhone,
+          type: "CONFIRMATION",
+          message: { contains: updatedApp.trackingCode },
+        },
+      })
+
+      if (!existingNotif) {
+        const smsResult = await sms.sendBookingConfirmation(updatedApp.customerPhone, {
+          trackingCode: updatedApp.trackingCode,
+          serviceName: updatedApp.service.name,
+          jalaliDate: jalaliParts,
+          time: tehranTime,
+          depositPaid: updatedApp.depositPaid,
+          balanceDue: updatedApp.balanceDue,
+        })
+
+        await tx.notificationJob.create({
+          data: {
+            phone: updatedApp.customerPhone,
+            recipientName: updatedApp.customerName,
+            type: "CONFIRMATION",
+            message: confirmationText,
+            status: smsResult.success ? "SENT" : "FAILED",
+            error: smsResult.error || null,
+            provider: sms.name,
+            sentAt: smsResult.success ? new Date() : null,
+          },
+        })
+      }
+    } catch (smsErr) {
+      console.error("[BookingEngine] Safe SMS Dispatch Error (Payment remains confirmed):", smsErr)
+    }
 
     return {
       success: true,

@@ -82,9 +82,16 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Send SMS
+    // Send SMS (strictly outside DB persistence; inspect real delivery result)
     const sms = getSmsProvider()
-    await sms.sendOtp(normalizedPhone, code)
+    const smsResult = await sms.sendOtp(normalizedPhone, code)
+
+    if (!smsResult.success) {
+      return NextResponse.json(
+        { error: "خطا در ارسال پیامک کد تایید. لطفاً لحظاتی دیگر مجدداً تلاش نمایید." },
+        { status: 503 }
+      )
+    }
 
     const isDev = process.env.NODE_ENV !== "production"
     return NextResponse.json({

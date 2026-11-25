@@ -1,7 +1,8 @@
 import { prisma } from "./db"
 import { createUtcFromTehranTime, getTehranTimeString } from "./jalali"
-import { getPaymentGateway } from "./providers/payment"
+import { getPaymentGateway, type PaymentGatewayProvider } from "./providers/payment"
 import { getSmsProvider, normalizeIranianPhone } from "./providers/sms"
+import { enqueueNotificationJob, processNotificationJob } from "./notifications"
 import { generateTrackingCode } from "./auth"
 
 export const OPERATING_START_HOUR = 10
@@ -525,9 +526,11 @@ export async function reserveSlotHold(params: {
 export async function handlePaymentCallback(params: {
   authority: string
   gatewayStatus?: string // e.g. "OK" or "NOK"
+  gatewayOverride?: PaymentGatewayProvider
 }): Promise<{
   success: boolean
   isIdempotentRepeat: boolean
+  isUncertain?: boolean
   appointment: unknown
   message: string
 }> {
@@ -604,13 +607,50 @@ export async function handlePaymentCallback(params: {
   }
 
   // 2. Perform server-to-server gateway verification OUTSIDE database transaction
-  const gateway = getPaymentGateway()
-  const verification = await gateway.verifyPayment({
-    authority: params.authority,
-    amountToman: payment.amountToman,
-  })
+  const gateway = params.gatewayOverride ?? getPaymentGateway()
+  let verification: Awaited<ReturnType<PaymentGatewayProvider["verifyPayment"]>>
+  try {
+    verification = await gateway.verifyPayment({
+      authority: params.authority,
+      amountToman: payment.amountToman,
+    })
+  } catch (verifyErr: unknown) {
+    // Transient network / unexpected exception: keep payment PENDING (uncertain, never confirm or blindly fail)
+    const errMsg = verifyErr instanceof Error ? verifyErr.message : "خطای موقت در ارتباط با درگاه پرداخت"
+    await prisma.payment.updateMany({
+      where: { id: payment.id, status: "PENDING" },
+      data: { errorCode: "NETWORK_UNCERTAIN", errorMessage: errMsg },
+    })
+    return {
+      success: false,
+      isIdempotentRepeat: false,
+      isUncertain: true,
+      appointment: payment.appointment,
+      message: errMsg,
+    }
+  }
 
   if (!verification.success) {
+    if (verification.isUncertain) {
+      // Transient gateway timeout / 5xx / invalid JSON: keep Payment PENDING & hold intact until verified
+      await prisma.payment.updateMany({
+        where: { id: payment.id, status: "PENDING" },
+        data: {
+          errorCode: verification.errorCode || verification.failureCategory || "UNCERTAIN",
+          errorMessage: verification.errorMessage || "وضعیت تراکنش در درگاه نامشخص است",
+        },
+      })
+
+      return {
+        success: false,
+        isIdempotentRepeat: false,
+        isUncertain: true,
+        appointment: payment.appointment,
+        message: verification.errorMessage || "خطای موقت در استعلام درگاه پرداخت. لطفاً کمی بعد مجدداً تلاش کنید.",
+      }
+    }
+
+    // Explicit bank / gateway rejection -> transition Payment=FAILED, Appointment=CANCELLED, SlotHold=RELEASED
     await prisma.$transaction(async (tx) => {
       const fresh = await tx.payment.findUnique({ where: { id: payment.id } })
       if (!fresh || fresh.status !== "PENDING") return
@@ -645,6 +685,7 @@ export async function handlePaymentCallback(params: {
     return {
       success: false,
       isIdempotentRepeat: false,
+      isUncertain: false,
       appointment: payment.appointment,
       message: verification.errorMessage || "تایید تراکنش با خطا مواجه شد",
     }
@@ -659,6 +700,9 @@ export async function handlePaymentCallback(params: {
     success: boolean
     isIdempotentRepeat: boolean
     confirmedNow: boolean
+    queuedJobId?: string
+    jalaliParts?: string
+    tehranTime?: string
     appointment: typeof payment.appointment
     message: string
   }
@@ -793,10 +837,31 @@ export async function handlePaymentCallback(params: {
         data: { status: "CONVERTED" },
       })
 
+      // Enqueue transactional outbox NotificationJob atomically inside confirmation tx (status=QUEUED)
+      const jalaliParts = new Intl.DateTimeFormat("fa-IR", {
+        timeZone: "Asia/Tehran",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }).format(updatedApp.date)
+      const tehranTime = getTehranTimeString(updatedApp.date)
+      const confirmationText = `کوروش باربر\nنوبت شما با موفقیت ثبت شد.\nخدمت: ${updatedApp.service.name}\nتاریخ: ${jalaliParts}\nساعت: ${tehranTime}\nکد پیگیری: ${updatedApp.trackingCode}\nمشتاق دیدارتون هستیم.`
+
+      const enq = await enqueueNotificationJob(tx, {
+        phone: updatedApp.customerPhone,
+        recipientName: updatedApp.customerName,
+        type: "CONFIRMATION",
+        message: confirmationText,
+        dedupContains: updatedApp.trackingCode,
+      })
+
       return {
         success: true,
         isIdempotentRepeat: false,
         confirmedNow: true,
+        queuedJobId: enq.enqueued ? enq.job.id : undefined,
+        jalaliParts,
+        tehranTime,
         appointment: updatedApp,
         message: "نوبت شما با موفقیت تایید شد",
       }
@@ -850,54 +915,26 @@ export async function handlePaymentCallback(params: {
     throw err
   }
 
-  // 4. Dispatch confirmation SMS AFTER DB transaction commits (never hold DB locks on external HTTP)
-  if (txResult.confirmedNow) {
+  // 4. Dispatch confirmation SMS strictly AFTER DB transaction commits via idempotent outbox
+  if (txResult.confirmedNow && txResult.queuedJobId) {
     try {
       const updatedApp = txResult.appointment
-      const sms = getSmsProvider()
-      const jalaliParts = new Intl.DateTimeFormat("fa-IR", {
-        timeZone: "Asia/Tehran",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      }).format(updatedApp.date)
+      const jalaliParts = txResult.jalaliParts || ""
+      const tehranTime = txResult.tehranTime || getTehranTimeString(updatedApp.date)
 
-      const tehranTime = getTehranTimeString(updatedApp.date)
-      const confirmationText = `کوروش باربر\nنوبت شما با موفقیت ثبت شد.\nخدمت: ${updatedApp.service.name}\nتاریخ: ${jalaliParts}\nساعت: ${tehranTime}\nکد پیگیری: ${updatedApp.trackingCode}\nمشتاق دیدارتون هستیم.`
-
-      const existingNotif = await prisma.notificationJob.findFirst({
-        where: {
-          phone: updatedApp.customerPhone,
-          type: "CONFIRMATION",
-          message: { contains: updatedApp.trackingCode },
-        },
+      await processNotificationJob(txResult.queuedJobId, {
+        dispatcher: (sms) =>
+          sms.sendBookingConfirmation(updatedApp.customerPhone, {
+            trackingCode: updatedApp.trackingCode,
+            serviceName: updatedApp.service.name,
+            jalaliDate: jalaliParts,
+            time: tehranTime,
+            depositPaid: updatedApp.depositPaid,
+            balanceDue: updatedApp.balanceDue,
+          }),
       })
-
-      if (!existingNotif) {
-        const smsResult = await sms.sendBookingConfirmation(updatedApp.customerPhone, {
-          trackingCode: updatedApp.trackingCode,
-          serviceName: updatedApp.service.name,
-          jalaliDate: jalaliParts,
-          time: tehranTime,
-          depositPaid: updatedApp.depositPaid,
-          balanceDue: updatedApp.balanceDue,
-        })
-
-        await prisma.notificationJob.create({
-          data: {
-            phone: updatedApp.customerPhone,
-            recipientName: updatedApp.customerName,
-            type: "CONFIRMATION",
-            message: confirmationText,
-            status: smsResult.success ? "SENT" : "FAILED",
-            error: smsResult.error || null,
-            provider: sms.name,
-            sentAt: smsResult.success ? new Date() : null,
-          },
-        })
-      }
     } catch (smsErr) {
-      console.error("[BookingEngine] Safe SMS Dispatch Error (Payment remains confirmed):", smsErr)
+      console.error("[BookingEngine] Safe Outbox SMS Dispatch Error (Payment remains confirmed):", smsErr)
     }
   }
 

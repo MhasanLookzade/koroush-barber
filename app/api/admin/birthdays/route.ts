@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { authorizeAdmin } from "@/lib/admin-auth"
 import { getJalaliDate, getTehranDateString, isJalaliLeapYear, PERSIAN_MONTHS, toPersianDigits } from "@/lib/jalali"
-import { getSmsProvider } from "@/lib/providers/sms"
+import { enqueueNotificationJob, processNotificationJob } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
 
@@ -178,7 +178,6 @@ export async function POST(request: NextRequest) {
       where: { id: { in: targetIds } },
     })
 
-    const sms = getSmsProvider()
     const results = []
 
     for (const customer of customers) {
@@ -193,12 +192,13 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      // Check duplicate within the last 30 days
+      // Check duplicate within the last 30 days (exclude terminal FAILED so admins can re-attempt)
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       const existingSent = await prisma.notificationJob.findFirst({
         where: {
           phone: customer.phone,
           type: "BIRTHDAY",
+          status: { in: ["QUEUED", "PENDING", "SENDING", "RETRY_PENDING", "SENT"] },
           createdAt: { gte: thirtyDaysAgo },
         },
       })
@@ -218,27 +218,26 @@ export async function POST(request: NextRequest) {
         customTemplate ||
         `کوروش باربر\n${customer.name ? `${customer.name} عزیز، ` : ""}تولدت مبارک! 🎉\nامیدواریم سال جدید زندگیت پر از اتفاق‌های خوب، سلامتی و موفقیت باشه.\nخوشحالیم که همراه کوروش باربر هستی.`
 
-      const sendRes = await sms.sendBirthdayGreeting(customer.phone, customer.name)
+      const enqueued = await enqueueNotificationJob(prisma, {
+        phone: customer.phone,
+        recipientName: customer.name,
+        type: "BIRTHDAY",
+        message: greetingText,
+      })
 
-      await prisma.notificationJob.create({
-        data: {
-          phone: customer.phone,
-          recipientName: customer.name,
-          type: "BIRTHDAY",
-          message: greetingText,
-          status: sendRes.success ? "SENT" : "FAILED",
-          error: sendRes.error || null,
-          provider: sms.name,
-          sentAt: sendRes.success ? new Date() : null,
-        },
+      const delivery = await processNotificationJob(enqueued.job.id, {
+        dispatcher: (sms) =>
+          customTemplate
+            ? sms.sendCustomSms(customer.phone, greetingText)
+            : sms.sendBirthdayGreeting(customer.phone, customer.name),
       })
 
       results.push({
         id: customer.id,
         name: customer.name,
         phone: customer.phone,
-        status: sendRes.success ? "SENT" : "FAILED",
-        error: sendRes.error,
+        status: delivery.finalStatus,
+        error: delivery.result?.error,
       })
     }
 

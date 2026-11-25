@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { authorizeAdmin } from "@/lib/admin-auth"
-import { getSmsProvider, getProviderStatus, isValidIranianPhone, normalizeIranianPhone } from "@/lib/providers/sms"
+import { getProviderStatus, isValidIranianPhone, normalizeIranianPhone } from "@/lib/providers/sms"
+import {
+  enqueueNotificationJob,
+  processNotificationJob,
+  processDueNotificationJobs,
+  runScheduledNotificationCycle,
+} from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
 
@@ -201,8 +207,8 @@ export async function GET(request: NextRequest) {
       }),
       prisma.notificationJob.count(),
       prisma.notificationJob.count({ where: { status: "SENT" } }),
-      prisma.notificationJob.count({ where: { status: "PENDING" } }),
-      prisma.notificationJob.count({ where: { status: "FAILED" } }),
+      prisma.notificationJob.count({ where: { status: { in: ["PENDING", "QUEUED", "SENDING", "RETRY_PENDING"] } } }),
+      prisma.notificationJob.count({ where: { status: { in: ["FAILED", "UNKNOWN"] } } }),
       prisma.customer.findMany({
         select: { id: true, name: true, phone: true },
         orderBy: { updatedAt: "desc" },
@@ -269,26 +275,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const sms = getSmsProvider()
-    const sendRes = await sms.sendCustomSms(normalizedPhone, message.trim())
-
-    const job = await prisma.notificationJob.create({
-      data: {
-        phone: normalizedPhone,
-        recipientName: recipientName || customer?.name || "مشتری سالن",
-        type: msgType,
-        message: message.trim(),
-        status: sendRes.success ? "SENT" : "FAILED",
-        error: sendRes.error || null,
-        provider: sms.name,
-        sentAt: sendRes.success ? new Date() : null,
-      },
+    const enqueued = await enqueueNotificationJob(prisma, {
+      phone: normalizedPhone,
+      recipientName: recipientName || customer?.name || "مشتری سالن",
+      type: msgType,
+      message: message.trim(),
     })
 
+    const delivery = await processNotificationJob(enqueued.job.id, {
+      skipScheduleGuard: true,
+    })
+
+    const job = delivery.job || enqueued.job
+
     return NextResponse.json({
-      success: true,
+      success: delivery.finalStatus === "SENT",
       job,
-      deliveryStatus: sendRes.success ? "DELIVERED" : "FAILED",
+      deliveryStatus: delivery.finalStatus === "SENT" ? "ACCEPTED_BY_PROVIDER" : delivery.finalStatus,
     })
   } catch (error) {
     console.error("Send SMS error:", error)
@@ -306,26 +309,35 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json()
     const { action, jobId, reminderHours, template, templateId, rules } = body
 
-    // Action 1: Retry failed notification
+    // Action 1: Retry failed/pending notification via outbox dispatcher
     if (action === "retry" && jobId) {
       const job = await prisma.notificationJob.findUnique({ where: { id: jobId } })
       if (!job) {
         return NextResponse.json({ error: "پیام مورد نظر یافت نشد" }, { status: 404 })
       }
 
-      const sms = getSmsProvider()
-      const sendRes = await sms.sendCustomSms(job.phone, job.message)
-
-      const updated = await prisma.notificationJob.update({
-        where: { id: jobId },
-        data: {
-          status: sendRes.success ? "SENT" : "FAILED",
-          error: sendRes.error || null,
-          sentAt: sendRes.success ? new Date() : null,
-        },
+      const outcome = await processNotificationJob(jobId, {
+        allowManualRetry: true,
+        skipScheduleGuard: true,
       })
 
-      return NextResponse.json({ success: true, job: updated })
+      return NextResponse.json({
+        success: outcome.finalStatus === "SENT",
+        job: outcome.job || job,
+        finalStatus: outcome.finalStatus,
+      })
+    }
+
+    // Action 1b: Process due notification outbox jobs
+    if (action === "process_outbox") {
+      const outbox = await processDueNotificationJobs()
+      return NextResponse.json({ success: true, outbox })
+    }
+
+    // Action 1c: Trigger scheduled reminder & birthday automation cycle
+    if (action === "run_automations") {
+      const cycle = await runScheduledNotificationCycle()
+      return NextResponse.json({ success: true, ...cycle })
     }
 
     // Action 2: Save / Create / Update SMS Template

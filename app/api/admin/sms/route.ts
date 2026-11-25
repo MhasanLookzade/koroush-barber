@@ -199,7 +199,7 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const [jobs, totalCount, sentCount, pendingCount, failedCount, allCustomers] = await Promise.all([
+    const [jobs, totalCount, sentCount, pendingCount, failedCount, unknownCount, allCustomers] = await Promise.all([
       prisma.notificationJob.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -208,7 +208,8 @@ export async function GET(request: NextRequest) {
       prisma.notificationJob.count(),
       prisma.notificationJob.count({ where: { status: "SENT" } }),
       prisma.notificationJob.count({ where: { status: { in: ["PENDING", "QUEUED", "SENDING", "RETRY_PENDING"] } } }),
-      prisma.notificationJob.count({ where: { status: { in: ["FAILED", "UNKNOWN"] } } }),
+      prisma.notificationJob.count({ where: { status: "FAILED" } }),
+      prisma.notificationJob.count({ where: { status: "UNKNOWN" } }),
       prisma.customer.findMany({
         select: { id: true, name: true, phone: true },
         orderBy: { updatedAt: "desc" },
@@ -228,6 +229,7 @@ export async function GET(request: NextRequest) {
         sent: sentCount,
         pending: pendingCount,
         failed: failedCount,
+        unknown: unknownCount,
       },
       jobs,
     })
@@ -307,25 +309,139 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { action, jobId, reminderHours, template, templateId, rules } = body
+    const { action, jobId, confirmUnknownResend, resolution, note, reminderHours, template, templateId, rules } = body
 
-    // Action 1: Retry failed/pending notification via outbox dispatcher
+    // Action 1: Retry / Reconcile notification via outbox dispatcher with explicit UNKNOWN safety policy
     if (action === "retry" && jobId) {
       const job = await prisma.notificationJob.findUnique({ where: { id: jobId } })
       if (!job) {
         return NextResponse.json({ error: "پیام مورد نظر یافت نشد" }, { status: 404 })
       }
 
+      if (job.status === "SENDING") {
+        return NextResponse.json(
+          { error: "این پیام هم‌اکنون در حال پردازش توسط ارسال‌کننده است. لطفاً کمی صبر فرمایید." },
+          { status: 409 }
+        )
+      }
+
+      // UNKNOWN safety policy: never blindly resend an uncertain provider outcome without explicit confirmation
+      if (job.status === "UNKNOWN" && confirmUnknownResend !== true) {
+        return NextResponse.json(
+          {
+            error:
+              "وضعیت این پیام نامشخص است و ممکن است قبلاً توسط سرویس پیامک ثبت شده باشد. لطفاً ابتدا بررسی یا تایید ارسال مجدد را انتخاب نمایید.",
+            requiresConfirmation: true,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (job.status === "UNKNOWN") {
+        await prisma.auditLog.create({
+          data: {
+            action: "ADMIN_CONFIRMED_RESEND_UNKNOWN_SMS",
+            entity: "NotificationJob",
+            entityId: job.id,
+            userId: auth.session.userId,
+            userRole: auth.session.role,
+            oldData: JSON.stringify({ status: job.status, error: job.error }),
+            newData: JSON.stringify({ confirmedDuplicateRisk: true }),
+          },
+        })
+      }
+
       const outcome = await processNotificationJob(jobId, {
         allowManualRetry: true,
+        allowUnknownRetry: confirmUnknownResend === true,
         skipScheduleGuard: true,
       })
+
+      if (!outcome.claimed) {
+        return NextResponse.json(
+          {
+            error:
+              outcome.reason === "ACTIVE_LEASE"
+                ? "این پیام هم‌اکنون در حال پردازش است."
+                : outcome.finalStatus === "UNKNOWN"
+                  ? "وضعیت پیام به نامشخص تغییر یافت و برای ارسال مجدد نیازمند تایید است."
+                  : "وضعیت پیام پیش‌تر تغییر یافته است.",
+            requiresConfirmation: outcome.finalStatus === "UNKNOWN" || undefined,
+          },
+          { status: 409 }
+        )
+      }
 
       return NextResponse.json({
         success: outcome.finalStatus === "SENT",
         job: outcome.job || job,
         finalStatus: outcome.finalStatus,
+        deliveryStatus: outcome.finalStatus === "SENT" ? "ACCEPTED_BY_PROVIDER" : outcome.finalStatus,
       })
+    }
+
+    // Action 1a: Explicit atomic reconciliation of UNKNOWN job without sending a duplicate SMS
+    if (action === "reconcile_unknown" && jobId) {
+      const job = await prisma.notificationJob.findUnique({ where: { id: jobId } })
+      if (!job) {
+        return NextResponse.json({ error: "پیام مورد نظر یافت نشد" }, { status: 404 })
+      }
+      if (job.status !== "UNKNOWN") {
+        return NextResponse.json(
+          { error: "تنها پیام‌های با وضعیت نامشخص (UNKNOWN) قابل تطبیق دستی هستند." },
+          { status: 400 }
+        )
+      }
+
+      const targetStatus = resolution === "MARK_SENT" ? "SENT" : resolution === "MARK_FAILED" ? "FAILED" : null
+      if (!targetStatus) {
+        return NextResponse.json({ error: "نتیجه تطبیق نامعتبر است" }, { status: 400 })
+      }
+
+      const txResult = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.notificationJob.updateMany({
+          where: { id: job.id, status: "UNKNOWN" },
+          data: {
+            status: targetStatus,
+            lockedAt: null,
+            leaseExpiresAt: null,
+            sentAt: targetStatus === "SENT" ? new Date() : null,
+            error:
+              targetStatus === "FAILED"
+                ? `${job.error ? job.error + " | " : ""}تایید دستی عدم ارسال توسط مدیر${note ? `: ${String(note).slice(0, 120)}` : ""}`
+                : null,
+          },
+        })
+
+        if (claimed.count === 0) {
+          return null
+        }
+
+        const updated = await tx.notificationJob.findUnique({ where: { id: job.id } })
+
+        await tx.auditLog.create({
+          data: {
+            action: "ADMIN_RECONCILED_UNKNOWN_SMS",
+            entity: "NotificationJob",
+            entityId: job.id,
+            userId: auth.session.userId,
+            userRole: auth.session.role,
+            oldData: JSON.stringify({ status: job.status, error: job.error }),
+            newData: JSON.stringify({ status: targetStatus, note: note || null }),
+          },
+        })
+
+        return updated
+      })
+
+      if (!txResult) {
+        return NextResponse.json(
+          { error: "این پیام هم‌زمان توسط عملیات دیگری تغییر وضعیت داده است." },
+          { status: 409 }
+        )
+      }
+
+      return NextResponse.json({ success: true, job: txResult, finalStatus: targetStatus })
     }
 
     // Action 1b: Process due notification outbox jobs

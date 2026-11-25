@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { authorizeAdmin } from "@/lib/admin-auth"
+import { sanitizeTelemetryInput } from "@/lib/http"
 import {
   createUtcFromTehranTime,
   getTehranDateString,
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
         const delivery = await processNotificationJob(result.notificationJobId)
         notificationStatus = delivery.finalStatus
       } catch (notifErr) {
-        console.error("[AdminReschedule] Outbox dispatch failed after commit:", notifErr)
+        console.error("[AdminReschedule] Outbox dispatch failed after commit:", sanitizeTelemetryInput(notifErr))
         notificationStatus = "RETRY_PENDING"
       }
     }
@@ -206,7 +207,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error("Admin reschedule appointment error:", error)
+    console.error("Admin reschedule appointment error:", sanitizeTelemetryInput(error))
     const message = error instanceof Error ? error.message : "خطا در تغییر زمان نوبت"
     const isConflict = message.includes("قبلاً برای نوبت دیگری") || message.includes("تعطیل است") || message.includes("مسدود شده")
     return NextResponse.json(

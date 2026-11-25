@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { authorizeAdmin } from "@/lib/admin-auth"
+import { sanitizeTelemetryInput } from "@/lib/http"
 import { runScheduledNotificationCycle } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
@@ -39,7 +40,7 @@ async function handleCron(request: NextRequest) {
       ...summary,
     })
   } catch (err) {
-    console.error("[CronNotifications] Execution error:", err)
+    console.error("[CronNotifications] Execution error:", sanitizeTelemetryInput(err))
     return NextResponse.json(
       { error: "خطا در اجرای پردازشگر اعلان‌ها" },
       { status: 500 }

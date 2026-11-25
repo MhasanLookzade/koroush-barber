@@ -935,7 +935,8 @@ export async function handlePaymentCallback(params: {
           }),
       })
     } catch (smsErr) {
-      console.error("[BookingEngine] Safe Outbox SMS Dispatch Error (Payment remains confirmed):", smsErr)
+      const { sanitizeTelemetryInput } = await import("./http")
+      console.error("[BookingEngine] Safe Outbox SMS Dispatch Error (Payment remains confirmed):", sanitizeTelemetryInput(smsErr))
     }
   }
 

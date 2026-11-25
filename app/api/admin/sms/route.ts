@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { authorizeAdmin } from "@/lib/admin-auth"
+import { sanitizeTelemetryInput } from "@/lib/http"
 import { getProviderStatus, isValidIranianPhone, normalizeIranianPhone } from "@/lib/providers/sms"
 import {
   enqueueNotificationJob,
@@ -234,7 +235,7 @@ export async function GET(request: NextRequest) {
       jobs,
     })
   } catch (error) {
-    console.error("Admin SMS API error:", error)
+    console.error("Admin SMS API error:", sanitizeTelemetryInput(error))
     return NextResponse.json({ error: "خطا در دریافت اطلاعات مرکز پیامک" }, { status: 500 })
   }
 }
@@ -296,7 +297,7 @@ export async function POST(request: NextRequest) {
       deliveryStatus: delivery.finalStatus === "SENT" ? "ACCEPTED_BY_PROVIDER" : delivery.finalStatus,
     })
   } catch (error) {
-    console.error("Send SMS error:", error)
+    console.error("Send SMS error:", sanitizeTelemetryInput(error))
     return NextResponse.json({ error: "خطا در ارسال پیامک" }, { status: 500 })
   }
 }
@@ -575,7 +576,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ error: "عملیات نامعتبر است" }, { status: 400 })
   } catch (error) {
-    console.error("SMS patch error:", error)
+    console.error("SMS patch error:", sanitizeTelemetryInput(error))
     return NextResponse.json({ error: "خطا در پردازش عملیات پیامک" }, { status: 500 })
   }
 }

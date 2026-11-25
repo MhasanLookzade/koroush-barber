@@ -852,6 +852,7 @@ export async function handlePaymentCallback(params: {
         recipientName: updatedApp.customerName,
         type: "CONFIRMATION",
         message: confirmationText,
+        dedupKey: `CONFIRMATION:${updatedApp.trackingCode}`,
         dedupContains: updatedApp.trackingCode,
       })
 

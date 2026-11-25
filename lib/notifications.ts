@@ -65,9 +65,13 @@ export function formatJobDiagnostic(params: {
   return head.slice(0, 500)
 }
 
+function isUniqueViolation(err: unknown): boolean {
+  return Boolean(err && typeof err === "object" && (err as { code?: string }).code === "P2002")
+}
+
 /**
- * Enqueue a NotificationJob inside or outside a Prisma transaction (Transactional Outbox).
- * Never sets SENT optimistically; starts as QUEUED with sentAt=null.
+ * Enqueue a NotificationJob using optional DB-enforced dedupKey and/or content marker.
+ * Always initializes with status="QUEUED", sentAt=null, and cleared lease fields.
  */
 export async function enqueueNotificationJob(
   db: PrismaLike,
@@ -77,13 +81,21 @@ export async function enqueueNotificationJob(
     type: string
     message: string
     scheduledAt?: Date
+    dedupKey?: string | null
     dedupContains?: string
   }
 ): Promise<{ enqueued: boolean; job: NotificationJob }> {
   const normalizedPhone = normalizeIranianPhone(params.phone)
   const provider = getSmsProvider()
 
-  if (params.dedupContains) {
+  if (params.dedupKey) {
+    const existingByKey = await db.notificationJob.findUnique({
+      where: { dedupKey: params.dedupKey },
+    })
+    if (existingByKey) {
+      return { enqueued: false, job: existingByKey }
+    }
+  } else if (params.dedupContains) {
     const existing = await db.notificationJob.findFirst({
       where: {
         phone: normalizedPhone,
@@ -98,23 +110,36 @@ export async function enqueueNotificationJob(
     }
   }
 
-  const job = await db.notificationJob.create({
-    data: {
-      phone: normalizedPhone,
-      recipientName: params.recipientName || null,
-      type: params.type,
-      message: params.message,
-      status: "QUEUED",
-      provider: provider.name,
-      lockedAt: null,
-      leaseExpiresAt: null,
-      scheduledAt: params.scheduledAt ?? new Date(),
-      sentAt: null,
-      error: null,
-    },
-  })
+  try {
+    const job = await db.notificationJob.create({
+      data: {
+        phone: normalizedPhone,
+        recipientName: params.recipientName || null,
+        type: params.type,
+        message: params.message,
+        status: "QUEUED",
+        provider: provider.name,
+        dedupKey: params.dedupKey || null,
+        lockedAt: null,
+        leaseExpiresAt: null,
+        scheduledAt: params.scheduledAt ?? new Date(),
+        sentAt: null,
+        error: null,
+      },
+    })
 
-  return { enqueued: true, job }
+    return { enqueued: true, job }
+  } catch (err: unknown) {
+    if (params.dedupKey && isUniqueViolation(err)) {
+      const existingByKey = await prisma.notificationJob.findUnique({
+        where: { dedupKey: params.dedupKey },
+      })
+      if (existingByKey) {
+        return { enqueued: false, job: existingByKey }
+      }
+    }
+    throw err
+  }
 }
 
 /**
@@ -480,22 +505,25 @@ export async function processDueNotificationJobs(options: {
 }
 
 /**
- * Helper to obtain today's Jalali month/day ("MM/DD") in Asia/Tehran Latin digits.
+ * Helper to obtain today's Jalali year and month/day ("MM/DD") in Asia/Tehran Latin digits.
  */
-function getTodayTehranJalaliMonthDay(now = new Date()): string {
+function getTodayTehranJalaliInfo(now = new Date()): { year: string; monthDay: string } {
   const parts = new Intl.DateTimeFormat("en-US-u-ca-persian", {
     timeZone: "Asia/Tehran",
+    year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(now)
+  const rawYear = parts.find((p) => p.type === "year")?.value || "1405"
+  const year = rawYear.replace(/[^\d]/g, "")
   const month = parts.find((p) => p.type === "month")?.value || "01"
   const day = parts.find((p) => p.type === "day")?.value || "01"
-  return `${month}/${day}`
+  return { year, monthDay: `${month}/${day}` }
 }
 
 /**
- * Scheduled automation runner (addresses BUG-008):
- * Enqueues due appointment reminders & birthday greetings idempotently and drains due outbox jobs.
+ * Scheduled automation runner (addresses BUG-008 & CRN-41-01):
+ * Uses deterministic DB-enforced dedupKey so concurrent Cron executions cannot create duplicate reminders.
  */
 export async function runScheduledNotificationCycle(options: {
   now?: Date
@@ -539,7 +567,7 @@ export async function runScheduledNotificationCycle(options: {
     }
   }
 
-  // 1. Enqueue upcoming appointment reminders idempotently
+  // 1. Enqueue upcoming appointment reminders with DB-enforced dedupKey
   if (reminderEnabled) {
     const windowEnd = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000)
     const upcoming = await prisma.appointment.findMany({
@@ -566,16 +594,15 @@ export async function runScheduledNotificationCycle(options: {
         recipientName: app.customerName,
         type: "REMINDER",
         message: text,
-        dedupContains: app.trackingCode,
+        dedupKey: `REMINDER:${app.trackingCode}`,
       })
       if (res.enqueued) remindersEnqueued++
     }
   }
 
-  // 2. Enqueue daily birthday greetings idempotently
+  // 2. Enqueue daily birthday greetings with DB-enforced dedupKey
   if (birthdayEnabled) {
-    const todayMd = getTodayTehranJalaliMonthDay(now)
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const { year: jalaliYear, monthDay: todayMd } = getTodayTehranJalaliInfo(now)
     const candidates = await prisma.customer.findMany({
       where: {
         smsConsent: true,
@@ -585,22 +612,13 @@ export async function runScheduledNotificationCycle(options: {
 
     for (const cust of candidates) {
       if (!isValidIranianPhone(cust.phone)) continue
-      const recent = await prisma.notificationJob.findFirst({
-        where: {
-          phone: normalizeIranianPhone(cust.phone),
-          type: "BIRTHDAY",
-          status: { in: ["QUEUED", "PENDING", "SENDING", "RETRY_PENDING", "SENT"] },
-          createdAt: { gte: thirtyDaysAgo },
-        },
-      })
-      if (recent) continue
-
       const greetingText = `کوروش باربر\n${cust.name ? `${cust.name} عزیز، ` : ""}تولدت مبارک! 🎉\nامیدواریم سال جدید زندگیت پر از اتفاق‌های خوب، سلامتی و موفقیت باشه.\nخوشحالیم که همراه کوروش باربر هستی.`
       const res = await enqueueNotificationJob(prisma, {
         phone: cust.phone,
         recipientName: cust.name,
         type: "BIRTHDAY",
         message: greetingText,
+        dedupKey: `BIRTHDAY:${cust.id}:${jalaliYear}`,
       })
       if (res.enqueued) birthdaysEnqueued++
     }

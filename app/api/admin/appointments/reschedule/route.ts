@@ -159,6 +159,7 @@ export async function POST(request: NextRequest) {
         recipientName: app.customerName,
         type: "RESCHEDULE",
         message: smsMessage,
+        dedupKey: `RESCHEDULE:${app.id}:${newDateStr}:${newTimeStr}`,
         dedupContains: `تاریخ جدید: ${newJalali}\nساعت جدید: ${newTimeStr}\nکد پیگیری: ${app.trackingCode}`,
       })
 

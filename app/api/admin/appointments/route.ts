@@ -4,7 +4,7 @@ import { authorizeAdmin } from "@/lib/admin-auth"
 import { createUtcFromTehranTime, getTehranTimeString, formatJalaliFull } from "@/lib/jalali"
 import { generateTrackingCode } from "@/lib/auth"
 import { normalizeIranianPhone } from "@/lib/providers/sms"
-import { isValidSlotTime } from "@/lib/booking-engine"
+import { isValidSlotTime, computeServiceDeposit } from "@/lib/booking-engine"
 
 export const dynamic = "force-dynamic"
 
@@ -127,75 +127,130 @@ export async function POST(request: NextRequest) {
     const normalizedPhone = normalizeIranianPhone(customerPhone)
 
     const service = await prisma.service.findUnique({ where: { id: serviceId } })
-    if (!service) {
-      return NextResponse.json({ error: "خدمت یافت نشد" }, { status: 404 })
+    if (!service || !service.isActive) {
+      return NextResponse.json({ error: "خدمت یافت نشد یا غیرفعال است" }, { status: 404 })
     }
 
-    // Check collision
-    const existing = await prisma.appointment.findFirst({
-      where: {
-        barberId: barberId || "barber-kourosh",
-        date: slotUtc,
-        status: { in: ["CONFIRMED", "COMPLETED", "HELD"] },
-      },
-    })
-
-    if (existing) {
-      return NextResponse.json(
-        { error: "این بازه زمانی هم‌اکنون رزرو یا در حال پرداخت است" },
-        { status: 409 }
-      )
+    // Authoritative integer-Toman deposit & balance computation (PAY-31-04)
+    const totalPrice = Math.round(service.price)
+    let depositPaid = 0
+    if (!isDepositWaived) {
+      try {
+        depositPaid = computeServiceDeposit(service)
+      } catch (calcErr: unknown) {
+        return NextResponse.json(
+          { error: calcErr instanceof Error ? calcErr.message : "تنظیمات بیعانه خدمت نامعتبر است" },
+          { status: 400 }
+        )
+      }
     }
+    const balanceDue = Math.max(0, totalPrice - depositPaid)
+    const targetBarberId = barberId || "barber-kourosh"
 
-    const totalPrice = service.price
-    const depositPaid = isDepositWaived ? 0 : service.depositPrice
-    const balanceDue = totalPrice - depositPaid
+    const isPostgres =
+      (process.env.DATABASE_URL || "").startsWith("postgres://") ||
+      (process.env.DATABASE_URL || "").startsWith("postgresql://")
+    const txOptions = isPostgres ? { isolationLevel: "Serializable" as const } : undefined
 
-    // Upsert customer
-    let customer = await prisma.customer.findUnique({ where: { phone: normalizedPhone } })
-    if (!customer) {
-      customer = await prisma.customer.create({
-        data: { phone: normalizedPhone, name: customerName, email: customerEmail || null },
+    try {
+      const newAppointment = await prisma.$transaction(async (tx) => {
+        const now = new Date()
+
+        // Expire overdue ACTIVE holds for this slot before checking
+        await tx.slotHold.updateMany({
+          where: {
+            barberId: targetBarberId,
+            slotTime: slotUtc,
+            status: "ACTIVE",
+            expiresAt: { lte: now },
+          },
+          data: { status: "EXPIRED" },
+        })
+
+        // Check active appointment & hold collisions atomically
+        const existing = await tx.appointment.findFirst({
+          where: {
+            barberId: targetBarberId,
+            date: slotUtc,
+            status: { in: ["CONFIRMED", "COMPLETED", "HELD", "AWAITING_PAYMENT"] },
+          },
+        })
+
+        const activeHold = await tx.slotHold.findFirst({
+          where: {
+            barberId: targetBarberId,
+            slotTime: slotUtc,
+            status: "ACTIVE",
+            expiresAt: { gt: now },
+          },
+        })
+
+        if (existing || activeHold) {
+          throw new Error("SLOT_CONFLICT")
+        }
+
+        // Upsert customer
+        let customer = await tx.customer.findUnique({ where: { phone: normalizedPhone } })
+        if (!customer) {
+          customer = await tx.customer.create({
+            data: { phone: normalizedPhone, name: customerName, email: customerEmail || null },
+          })
+        }
+
+        const trackingCode = generateTrackingCode()
+        const created = await tx.appointment.create({
+          data: {
+            trackingCode,
+            barberId: targetBarberId,
+            serviceId: service.id,
+            customerId: customer.id,
+            customerName,
+            customerPhone: normalizedPhone,
+            customerEmail: customerEmail || null,
+            date: slotUtc,
+            endDate: slotEndUtc,
+            status: "CONFIRMED", // Admin manual booking is directly confirmed
+            totalPrice,
+            depositPaid,
+            balanceDue,
+            adminNotes: notes ? `ثبت دستی مدیریت: ${notes}` : "ثبت دستی توسط مدیریت",
+          },
+          include: { service: true, barber: true },
+        })
+
+        await tx.auditLog.create({
+          data: {
+            action: "ADMIN_MANUAL_BOOKING",
+            entity: "Appointment",
+            entityId: created.id,
+            userId: auth.session.userId,
+            userRole: auth.session.role,
+            details: JSON.stringify({ trackingCode, customerPhone: normalizedPhone, slotUtc, totalPrice, depositPaid, balanceDue }),
+          },
+        })
+
+        return created
+      }, txOptions)
+
+      return NextResponse.json({
+        success: true,
+        appointment: newAppointment,
+        message: "نوبت با موفقیت توسط مدیریت ثبت گردید",
       })
+    } catch (txErr: unknown) {
+      const code = (txErr as { code?: string } | null)?.code
+      if (
+        (txErr instanceof Error && txErr.message === "SLOT_CONFLICT") ||
+        code === "P2002" ||
+        code === "P2034"
+      ) {
+        return NextResponse.json(
+          { error: "این بازه زمانی هم‌اکنون رزرو یا در حال پرداخت است" },
+          { status: 409 }
+        )
+      }
+      throw txErr
     }
-
-    const trackingCode = generateTrackingCode()
-    const newAppointment = await prisma.appointment.create({
-      data: {
-        trackingCode,
-        barberId: barberId || "barber-kourosh",
-        serviceId: service.id,
-        customerId: customer.id,
-        customerName,
-        customerPhone: normalizedPhone,
-        customerEmail: customerEmail || null,
-        date: slotUtc,
-        endDate: slotEndUtc,
-        status: "CONFIRMED", // Admin manual booking is directly confirmed
-        totalPrice,
-        depositPaid,
-        balanceDue,
-        adminNotes: notes ? `ثبت دستی مدیریت: ${notes}` : "ثبت دستی توسط مدیریت",
-      },
-      include: { service: true, barber: true },
-    })
-
-    await prisma.auditLog.create({
-      data: {
-        action: "ADMIN_MANUAL_BOOKING",
-        entity: "Appointment",
-        entityId: newAppointment.id,
-        userId: auth.session.userId,
-        userRole: auth.session.role,
-        details: JSON.stringify({ trackingCode, customerPhone: normalizedPhone, slotUtc }),
-      },
-    })
-
-    return NextResponse.json({
-      success: true,
-      appointment: newAppointment,
-      message: "نوبت با موفقیت توسط مدیریت ثبت گردید",
-    })
   } catch (error) {
     console.error("Admin create appointment error:", error)
     return NextResponse.json({ error: "خطا در ثبت نوبت توسط مدیریت" }, { status: 500 })

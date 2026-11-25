@@ -20,7 +20,10 @@ import {
   handlePaymentCallback,
 } from "../lib/booking-engine"
 import { POST as payPost } from "../app/api/booking/pay/route"
-import { signCustomerToken } from "../lib/auth"
+import { POST as reviewPost } from "../app/api/reviews/route"
+import { POST as adminApptPost } from "../app/api/admin/appointments/route"
+import { PUT as legacyApptPut, DELETE as legacyApptDelete } from "../app/api/appointments/[id]/route"
+import { signCustomerToken, signAdminToken } from "../lib/auth"
 
 let passed = 0
 let failed = 0
@@ -41,6 +44,7 @@ function futureDateStr(daysAhead = 5): string {
 }
 
 async function seedIsolatedFixtures() {
+  await prisma.review.deleteMany()
   await prisma.notificationJob.deleteMany()
   await prisma.auditLog.deleteMany()
   await prisma.payment.deleteMany()
@@ -513,6 +517,254 @@ async function runPhase3Tests() {
     ["CONFIRMED", "CANCELLED", "PAYMENT_REVIEW"].includes(ccApp?.status || ""),
     "Concurrent confirm & cancel resolves to a consistent state without double-booking",
     `status=${ccApp?.status}`
+  )
+
+  // -------------------------------------------------------------------------
+  // D. PHASE 3.2 FINAL INTEGRITY TESTS (MIG-31-01, PAY-31-04, BKC-31-03)
+  // -------------------------------------------------------------------------
+  console.log("\n📌 Section D: Phase 3.2 Migration, Admin Booking & Legacy Cancellation Tests")
+
+  // D1. MIG-31-01: Review creation on freshly migrated PostgreSQL database
+  const reviewRes = await reviewPost(
+    new NextRequest("http://localhost:3000/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-forwarded-for": "10.32.0.1" },
+      body: JSON.stringify({ name: "مشتری ممیزی", rating: 5, comment: "کیفیت عالی و برخورد حرفه‌ای" }),
+    })
+  )
+  const reviewData = await reviewRes.json()
+  assert(
+    reviewRes.status === 200 && reviewData.success === true,
+    "POST /api/reviews succeeds on freshly migrated PostgreSQL database (MIG-31-01)"
+  )
+
+  // D2. PAY-31-04: Manual Admin Booking Deposit Calculation
+  const ownerToken = signAdminToken({ userId: "admin-owner-1", username: "admin", role: "OWNER", name: "Owner" })
+  const staffToken = signAdminToken({ userId: "admin-staff-1", username: "staff", role: "STAFF", name: "Staff" })
+
+  // Fixed deposit (75,000 of 300,000 -> balanceDue 225,000)
+  const adminFixedRes = await adminApptPost(
+    new NextRequest("http://localhost:3000/api/admin/appointments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie: `admin_token=${ownerToken}` },
+      body: JSON.stringify({
+        serviceId: fixedService.id,
+        barberId: barber.id,
+        dateStr: testDate,
+        timeStr: "18:00",
+        customerName: "مشتری ادمین ثابت",
+        customerPhone: "09126000001",
+      }),
+    })
+  )
+  const adminFixedData = await adminFixedRes.json()
+  assert(
+    adminFixedRes.status === 200 &&
+      adminFixedData.appointment?.depositPaid === 75000 &&
+      adminFixedData.appointment?.balanceDue === 225000,
+    "POST /api/admin/appointments computes fixed deposit (75,000) & balance (225,000)"
+  )
+
+  // Percentage deposit (30% of 450,000 = 135,000) + tampered depositPaid in payload ignored
+  const adminPctRes = await adminApptPost(
+    new NextRequest("http://localhost:3000/api/admin/appointments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie: `admin_token=${ownerToken}` },
+      body: JSON.stringify({
+        serviceId: pctService.id,
+        barberId: barber.id,
+        dateStr: testDate,
+        timeStr: "19:00",
+        customerName: "مشتری ادمین درصدی",
+        customerPhone: "09126000002",
+        depositPaid: 1000,
+      }),
+    })
+  )
+  const adminPctData = await adminPctRes.json()
+  assert(
+    adminPctRes.status === 200 &&
+      adminPctData.appointment?.depositPaid === 135000 &&
+      adminPctData.appointment?.balanceDue === 315000,
+    "POST /api/admin/appointments computes 30% deposit (135,000) & ignores client depositPaid=1000"
+  )
+
+  // Waived deposit
+  const adminWaivedRes = await adminApptPost(
+    new NextRequest("http://localhost:3000/api/admin/appointments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie: `admin_token=${ownerToken}` },
+      body: JSON.stringify({
+        serviceId: pctService.id,
+        barberId: barber.id,
+        dateStr: testDate,
+        timeStr: "20:00",
+        customerName: "مشتری بدون بیعانه",
+        customerPhone: "09126000003",
+        isDepositWaived: true,
+      }),
+    })
+  )
+  const adminWaivedData = await adminWaivedRes.json()
+  assert(
+    adminWaivedRes.status === 200 &&
+      adminWaivedData.appointment?.depositPaid === 0 &&
+      adminWaivedData.appointment?.balanceDue === 450000,
+    "POST /api/admin/appointments supports isDepositWaived=true cleanly (deposit=0, balance=450,000)"
+  )
+
+  // Invalid service percentage configuration rejected cleanly
+  const badPctSvc = await prisma.service.create({
+    data: {
+      id: "pg-svc-badpct",
+      name: "سرویس نامعتبر",
+      price: 200000,
+      depositPrice: 50000,
+      depositType: "percentage",
+      depositPercent: 150,
+      duration: 60,
+      isActive: true,
+    },
+  })
+  const adminBadPctRes = await adminApptPost(
+    new NextRequest("http://localhost:3000/api/admin/appointments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", cookie: `admin_token=${ownerToken}` },
+      body: JSON.stringify({
+        serviceId: badPctSvc.id,
+        barberId: barber.id,
+        dateStr: testDate,
+        timeStr: "21:00",
+        customerName: "نامعتبر",
+        customerPhone: "09126000004",
+      }),
+    })
+  )
+  assert(
+    adminBadPctRes.status === 400,
+    "POST /api/admin/appointments rejects invalid service percentage (>100%) with 400"
+  )
+
+  // D3. BKC-31-03: Legacy PUT / DELETE /api/appointments/[id] hold release & isolation
+  const legHold = await reserveSlotHold({
+    barberId: barber.id,
+    serviceId: fixedService.id,
+    dateStr: testDate,
+    timeStr: "21:00",
+    customerName: "مالک اول",
+    customerPhone: "09127000001",
+  })
+
+  // Unauthorized check preserved
+  const legUnauthPut = await legacyApptPut(
+    new NextRequest(`http://localhost:3000/api/appointments/${legHold.appointmentId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "CANCELLED" }),
+    }),
+    { params: Promise.resolve({ id: legHold.appointmentId }) }
+  )
+  assert(legUnauthPut.status === 401, "Legacy PUT /api/appointments/[id] preserves 401 for unauthenticated requests")
+
+  // Cancel via legacy PUT -> releases own active hold
+  const legCancelPut = await legacyApptPut(
+    new NextRequest(`http://localhost:3000/api/appointments/${legHold.appointmentId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", cookie: `admin_token=${staffToken}` },
+      body: JSON.stringify({ status: "CANCELLED" }),
+    }),
+    { params: Promise.resolve({ id: legHold.appointmentId }) }
+  )
+  const legHoldAfterPut = await prisma.slotHold.findUnique({ where: { id: legHold.holdId } })
+  assert(
+    legCancelPut.status === 200 && legHoldAfterPut?.status === "RELEASED",
+    "Legacy PUT CANCELLED updates appointment and releases owner's active SlotHold"
+  )
+
+  // Second customer acquires active hold on same slot; deleting first stale appointment must NOT release second customer's hold!
+  const secondHold = await reserveSlotHold({
+    barberId: barber.id,
+    serviceId: fixedService.id,
+    dateStr: testDate,
+    timeStr: "21:00",
+    customerName: "مالک دوم",
+    customerPhone: "09127000002",
+  })
+
+  // STAFF cannot DELETE (403)
+  const legStaffDel = await legacyApptDelete(
+    new NextRequest(`http://localhost:3000/api/appointments/${legHold.appointmentId}`, {
+      method: "DELETE",
+      headers: { cookie: `admin_token=${staffToken}` },
+    }),
+    { params: Promise.resolve({ id: legHold.appointmentId }) }
+  )
+  assert(legStaffDel.status === 403, "Legacy DELETE /api/appointments/[id] preserves 403 for STAFF role")
+
+  // OWNER deletes first appointment -> second customer's ACTIVE hold remains untouched!
+  const legOwnerDelOld = await legacyApptDelete(
+    new NextRequest(`http://localhost:3000/api/appointments/${legHold.appointmentId}`, {
+      method: "DELETE",
+      headers: { cookie: `admin_token=${ownerToken}` },
+    }),
+    { params: Promise.resolve({ id: legHold.appointmentId }) }
+  )
+  const secondHoldAfterOldDel = await prisma.slotHold.findUnique({ where: { id: secondHold.holdId } })
+  assert(
+    legOwnerDelOld.status === 200 && secondHoldAfterOldDel?.status === "ACTIVE",
+    "Legacy DELETE of first customer's appointment does NOT release second customer's active hold"
+  )
+
+  // OWNER deletes second customer's own appointment -> second customer's hold IS released!
+  const legOwnerDelOwn = await legacyApptDelete(
+    new NextRequest(`http://localhost:3000/api/appointments/${secondHold.appointmentId}`, {
+      method: "DELETE",
+      headers: { cookie: `admin_token=${ownerToken}` },
+    }),
+    { params: Promise.resolve({ id: secondHold.appointmentId }) }
+  )
+  const secondHoldAfterOwnDel = await prisma.slotHold.findUnique({ where: { id: secondHold.holdId } })
+  assert(
+    legOwnerDelOwn.status === 200 && secondHoldAfterOwnDel?.status === "RELEASED",
+    "Legacy DELETE releases owner's own active hold and frees slot"
+  )
+
+  // Legacy PUT trying to promote appointment onto already CONFIRMED slot (18:00) -> 409
+  const legHold18 = await reserveSlotHold({
+    barberId: barber.id,
+    serviceId: fixedService.id,
+    dateStr: testDate,
+    timeStr: "22:00",
+    customerName: "کاربر تست تداخل",
+    customerPhone: "09127000003",
+  })
+  // Move legHold18 date to 18:00 (already CONFIRMED by adminFixedData) via direct create & test PUT CONFIRMED conflict
+  const conflictCand = await prisma.appointment.create({
+    data: {
+      trackingCode: "KB-CONF-LEG",
+      barberId: barber.id,
+      serviceId: fixedService.id,
+      customerName: "کاندید تداخل",
+      customerPhone: "09127000004",
+      date: new Date(adminFixedData.appointment.date),
+      endDate: new Date(adminFixedData.appointment.endDate),
+      status: "HELD",
+      totalPrice: 300000,
+      depositPaid: 0,
+      balanceDue: 300000,
+    },
+  })
+  const legConflictPut = await legacyApptPut(
+    new NextRequest(`http://localhost:3000/api/appointments/${conflictCand.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", cookie: `admin_token=${ownerToken}` },
+      body: JSON.stringify({ status: "CONFIRMED" }),
+    }),
+    { params: Promise.resolve({ id: conflictCand.id }) }
+  )
+  assert(
+    legConflictPut.status === 409 && Boolean(legHold18.holdId),
+    "Legacy PUT promoting appointment onto an already CONFIRMED slot returns 409"
   )
 
   // Cleanup isolated test DB

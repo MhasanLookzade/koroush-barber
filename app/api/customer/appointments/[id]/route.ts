@@ -62,42 +62,74 @@ export async function PATCH(
       return NextResponse.json({ error: "نوبت یافت نشد" }, { status: 404 })
     }
 
-    // Only allow cancellation if not already completed/cancelled
-    if (["COMPLETED", "CANCELLED", "NO_SHOW"].includes(appointment.status)) {
+    // Only allow cancellation if not already completed/cancelled/expired
+    if (["COMPLETED", "CANCELLED", "NO_SHOW", "EXPIRED"].includes(appointment.status)) {
       return NextResponse.json({ error: "امکان لغو این نوبت وجود ندارد" }, { status: 400 })
     }
 
-    const updated = await prisma.appointment.update({
-      where: { id },
-      data: { status: "CANCELLED" },
-      include: {
-        service: { select: { id: true, name: true, price: true, duration: true } },
-        barber: { select: { id: true, name: true } },
-      },
-    })
+    // Enforce salon cutoff horizon setting for confirmed appointments (BUG-007)
+    if (appointment.status === "CONFIRMED") {
+      const cutoffSetting = await prisma.siteSetting.findUnique({
+        where: { key: "cancellation_cutoff_hours" },
+      })
+      const cutoffHours = cutoffSetting ? parseInt(cutoffSetting.value, 10) : 12
+      const cutoffMs = (Number.isFinite(cutoffHours) ? cutoffHours : 12) * 60 * 60 * 1000
+      if (new Date(appointment.date).getTime() - Date.now() < cutoffMs) {
+        return NextResponse.json(
+          { error: `امکان لغو نوبت کمتر از ${Number.isFinite(cutoffHours) ? cutoffHours : 12} ساعت مانده به زمان رزرو وجود ندارد.` },
+          { status: 400 }
+        )
+      }
+    }
 
-    // Create audit log
-    await prisma.auditLog.create({
-      data: {
-        action: "CUSTOMER_CANCEL_APPOINTMENT",
-        entity: "Appointment",
-        entityId: id,
-        userId: customerId,
-        userType: "customer",
-        oldData: JSON.stringify({ status: appointment.status }),
-        newData: JSON.stringify({ status: "CANCELLED" }),
-      },
-    })
+    const updated = await prisma.$transaction(async (tx) => {
+      const cancelled = await tx.appointment.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+          cancelledAt: new Date(),
+          cancellationReason: "لغو توسط مشتری از پنل کاربری",
+        },
+        include: {
+          service: { select: { id: true, name: true, price: true, duration: true } },
+          barber: { select: { id: true, name: true } },
+        },
+      })
 
-    // Create notification
-    await prisma.notification.create({
-      data: {
-        customerId,
-        type: "appointment_cancelled",
-        title: "نوبت لغو شد",
-        message: `نوبت ${updated.service.name} با ${updated.barber.name} لغو گردید`,
-        data: JSON.stringify({ appointmentId: id }),
-      },
+      // Release any active slot hold for this slot
+      await tx.slotHold.updateMany({
+        where: {
+          barberId: appointment.barberId,
+          slotTime: appointment.date,
+          customerPhone: appointment.customerPhone,
+          status: "ACTIVE",
+        },
+        data: { status: "RELEASED" },
+      })
+
+      await tx.auditLog.create({
+        data: {
+          action: "CUSTOMER_CANCEL_APPOINTMENT",
+          entity: "Appointment",
+          entityId: id,
+          userId: customerId,
+          userType: "customer",
+          oldData: JSON.stringify({ status: appointment.status }),
+          newData: JSON.stringify({ status: "CANCELLED" }),
+        },
+      })
+
+      await tx.notification.create({
+        data: {
+          customerId,
+          type: "appointment_cancelled",
+          title: "نوبت لغو شد",
+          message: `نوبت ${cancelled.service.name} با ${cancelled.barber.name} لغو گردید`,
+          data: JSON.stringify({ appointmentId: id }),
+        },
+      })
+
+      return cancelled
     })
 
     return NextResponse.json({ appointment: updated, message: "نوبت با موفقیت لغو شد" })

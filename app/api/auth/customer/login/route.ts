@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
+import { signCustomerToken } from "@/lib/auth"
+import { CUSTOMER_COOKIE_NAME } from "@/lib/customer-auth"
 
 const loginSchema = z.object({
   phone: z.string().regex(/^09\d{9}$/, "فرمت شماره تماس: 09xxxxxxxxx"),
@@ -63,8 +65,14 @@ export async function POST(request: NextRequest) {
       message: "ورود با موفقیت انجام شد",
     })
 
-    // Set auth cookie
-    response.cookies.set("customer_auth", customer.id, {
+    const token = signCustomerToken({
+      customerId: customer.id,
+      phone: customer.phone,
+      name: customer.name,
+    })
+
+    // Set signed auth cookie
+    response.cookies.set(CUSTOMER_COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",

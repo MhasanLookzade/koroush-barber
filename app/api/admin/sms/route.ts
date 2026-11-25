@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { authorizeAdmin } from "@/lib/admin-auth"
-import { getSmsProvider, getProviderStatus, isValidIranianPhone, normalizeIranianPhone } from "@/lib/providers/sms"
+import { sanitizeTelemetryInput } from "@/lib/http"
+import { getProviderStatus, isValidIranianPhone, normalizeIranianPhone } from "@/lib/providers/sms"
+import {
+  enqueueNotificationJob,
+  processNotificationJob,
+  processDueNotificationJobs,
+  runScheduledNotificationCycle,
+} from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
 
@@ -193,7 +200,7 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    const [jobs, totalCount, sentCount, pendingCount, failedCount, allCustomers] = await Promise.all([
+    const [jobs, totalCount, sentCount, pendingCount, failedCount, unknownCount, allCustomers] = await Promise.all([
       prisma.notificationJob.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -201,8 +208,9 @@ export async function GET(request: NextRequest) {
       }),
       prisma.notificationJob.count(),
       prisma.notificationJob.count({ where: { status: "SENT" } }),
-      prisma.notificationJob.count({ where: { status: "PENDING" } }),
+      prisma.notificationJob.count({ where: { status: { in: ["PENDING", "QUEUED", "SENDING", "RETRY_PENDING"] } } }),
       prisma.notificationJob.count({ where: { status: "FAILED" } }),
+      prisma.notificationJob.count({ where: { status: "UNKNOWN" } }),
       prisma.customer.findMany({
         select: { id: true, name: true, phone: true },
         orderBy: { updatedAt: "desc" },
@@ -222,11 +230,12 @@ export async function GET(request: NextRequest) {
         sent: sentCount,
         pending: pendingCount,
         failed: failedCount,
+        unknown: unknownCount,
       },
       jobs,
     })
   } catch (error) {
-    console.error("Admin SMS API error:", error)
+    console.error("Admin SMS API error:", sanitizeTelemetryInput(error))
     return NextResponse.json({ error: "خطا در دریافت اطلاعات مرکز پیامک" }, { status: 500 })
   }
 }
@@ -269,29 +278,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const sms = getSmsProvider()
-    const sendRes = await sms.sendCustomSms(normalizedPhone, message.trim())
-
-    const job = await prisma.notificationJob.create({
-      data: {
-        phone: normalizedPhone,
-        recipientName: recipientName || customer?.name || "مشتری سالن",
-        type: msgType,
-        message: message.trim(),
-        status: sendRes.success ? "SENT" : "FAILED",
-        error: sendRes.error || null,
-        provider: sms.name,
-        sentAt: sendRes.success ? new Date() : null,
-      },
+    const enqueued = await enqueueNotificationJob(prisma, {
+      phone: normalizedPhone,
+      recipientName: recipientName || customer?.name || "مشتری سالن",
+      type: msgType,
+      message: message.trim(),
     })
+
+    const delivery = await processNotificationJob(enqueued.job.id, {
+      skipScheduleGuard: true,
+    })
+
+    const job = delivery.job || enqueued.job
 
     return NextResponse.json({
-      success: true,
+      success: delivery.finalStatus === "SENT",
       job,
-      deliveryStatus: sendRes.success ? "DELIVERED" : "FAILED",
+      deliveryStatus: delivery.finalStatus === "SENT" ? "ACCEPTED_BY_PROVIDER" : delivery.finalStatus,
     })
   } catch (error) {
-    console.error("Send SMS error:", error)
+    console.error("Send SMS error:", sanitizeTelemetryInput(error))
     return NextResponse.json({ error: "خطا در ارسال پیامک" }, { status: 500 })
   }
 }
@@ -304,28 +310,151 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { action, jobId, reminderHours, template, templateId, rules } = body
+    const { action, jobId, confirmUnknownResend, resolution, note, reminderHours, template, templateId, rules } = body
 
-    // Action 1: Retry failed notification
+    // Action 1: Retry / Reconcile notification via outbox dispatcher with explicit UNKNOWN safety policy
     if (action === "retry" && jobId) {
       const job = await prisma.notificationJob.findUnique({ where: { id: jobId } })
       if (!job) {
         return NextResponse.json({ error: "پیام مورد نظر یافت نشد" }, { status: 404 })
       }
 
-      const sms = getSmsProvider()
-      const sendRes = await sms.sendCustomSms(job.phone, job.message)
+      if (job.status === "SENDING") {
+        return NextResponse.json(
+          { error: "این پیام هم‌اکنون در حال پردازش توسط ارسال‌کننده است. لطفاً کمی صبر فرمایید." },
+          { status: 409 }
+        )
+      }
 
-      const updated = await prisma.notificationJob.update({
-        where: { id: jobId },
-        data: {
-          status: sendRes.success ? "SENT" : "FAILED",
-          error: sendRes.error || null,
-          sentAt: sendRes.success ? new Date() : null,
-        },
+      // UNKNOWN safety policy: never blindly resend an uncertain provider outcome without explicit confirmation
+      if (job.status === "UNKNOWN" && confirmUnknownResend !== true) {
+        return NextResponse.json(
+          {
+            error:
+              "وضعیت این پیام نامشخص است و ممکن است قبلاً توسط سرویس پیامک ثبت شده باشد. لطفاً ابتدا بررسی یا تایید ارسال مجدد را انتخاب نمایید.",
+            requiresConfirmation: true,
+          },
+          { status: 409 }
+        )
+      }
+
+      if (job.status === "UNKNOWN") {
+        await prisma.auditLog.create({
+          data: {
+            action: "ADMIN_CONFIRMED_RESEND_UNKNOWN_SMS",
+            entity: "NotificationJob",
+            entityId: job.id,
+            userId: auth.session.userId,
+            userRole: auth.session.role,
+            oldData: JSON.stringify({ status: job.status, error: job.error }),
+            newData: JSON.stringify({ confirmedDuplicateRisk: true }),
+          },
+        })
+      }
+
+      const outcome = await processNotificationJob(jobId, {
+        allowManualRetry: true,
+        allowUnknownRetry: confirmUnknownResend === true,
+        skipScheduleGuard: true,
       })
 
-      return NextResponse.json({ success: true, job: updated })
+      if (!outcome.claimed) {
+        return NextResponse.json(
+          {
+            error:
+              outcome.reason === "ACTIVE_LEASE"
+                ? "این پیام هم‌اکنون در حال پردازش است."
+                : outcome.finalStatus === "UNKNOWN"
+                  ? "وضعیت پیام به نامشخص تغییر یافت و برای ارسال مجدد نیازمند تایید است."
+                  : "وضعیت پیام پیش‌تر تغییر یافته است.",
+            requiresConfirmation: outcome.finalStatus === "UNKNOWN" || undefined,
+          },
+          { status: 409 }
+        )
+      }
+
+      return NextResponse.json({
+        success: outcome.finalStatus === "SENT",
+        job: outcome.job || job,
+        finalStatus: outcome.finalStatus,
+        deliveryStatus: outcome.finalStatus === "SENT" ? "ACCEPTED_BY_PROVIDER" : outcome.finalStatus,
+      })
+    }
+
+    // Action 1a: Explicit atomic reconciliation of UNKNOWN job without sending a duplicate SMS
+    if (action === "reconcile_unknown" && jobId) {
+      const job = await prisma.notificationJob.findUnique({ where: { id: jobId } })
+      if (!job) {
+        return NextResponse.json({ error: "پیام مورد نظر یافت نشد" }, { status: 404 })
+      }
+      if (job.status !== "UNKNOWN") {
+        return NextResponse.json(
+          { error: "تنها پیام‌های با وضعیت نامشخص (UNKNOWN) قابل تطبیق دستی هستند." },
+          { status: 400 }
+        )
+      }
+
+      const targetStatus = resolution === "MARK_SENT" ? "SENT" : resolution === "MARK_FAILED" ? "FAILED" : null
+      if (!targetStatus) {
+        return NextResponse.json({ error: "نتیجه تطبیق نامعتبر است" }, { status: 400 })
+      }
+
+      const txResult = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.notificationJob.updateMany({
+          where: { id: job.id, status: "UNKNOWN" },
+          data: {
+            status: targetStatus,
+            lockedAt: null,
+            leaseExpiresAt: null,
+            sentAt: targetStatus === "SENT" ? new Date() : null,
+            error:
+              targetStatus === "FAILED"
+                ? `${job.error ? job.error + " | " : ""}تایید دستی عدم ارسال توسط مدیر${note ? `: ${String(note).slice(0, 120)}` : ""}`
+                : null,
+          },
+        })
+
+        if (claimed.count === 0) {
+          return null
+        }
+
+        const updated = await tx.notificationJob.findUnique({ where: { id: job.id } })
+
+        await tx.auditLog.create({
+          data: {
+            action: "ADMIN_RECONCILED_UNKNOWN_SMS",
+            entity: "NotificationJob",
+            entityId: job.id,
+            userId: auth.session.userId,
+            userRole: auth.session.role,
+            oldData: JSON.stringify({ status: job.status, error: job.error }),
+            newData: JSON.stringify({ status: targetStatus, note: note || null }),
+          },
+        })
+
+        return updated
+      })
+
+      if (!txResult) {
+        return NextResponse.json(
+          { error: "این پیام هم‌زمان توسط عملیات دیگری تغییر وضعیت داده است." },
+          { status: 409 }
+        )
+      }
+
+      return NextResponse.json({ success: true, job: txResult, finalStatus: targetStatus })
+    }
+
+    // Action 1b: Process due notification outbox jobs
+    if (action === "process_outbox") {
+      const outbox = await processDueNotificationJobs()
+      return NextResponse.json({ success: true, outbox })
+    }
+
+    // Action 1c: Trigger scheduled reminder & birthday automation cycle
+    if (action === "run_automations") {
+      const cycle = await runScheduledNotificationCycle()
+      return NextResponse.json({ success: true, ...cycle })
     }
 
     // Action 2: Save / Create / Update SMS Template
@@ -447,7 +576,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ error: "عملیات نامعتبر است" }, { status: 400 })
   } catch (error) {
-    console.error("SMS patch error:", error)
+    console.error("SMS patch error:", sanitizeTelemetryInput(error))
     return NextResponse.json({ error: "خطا در پردازش عملیات پیامک" }, { status: 500 })
   }
 }

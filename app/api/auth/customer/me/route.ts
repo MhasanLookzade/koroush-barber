@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { getCustomerFromRequest } from "@/lib/customer-auth"
 
 export const dynamic = "force-dynamic"
 
 export async function GET(request: NextRequest) {
   try {
-    const customerId = request.cookies.get("customer_auth")?.value
+    const session = getCustomerFromRequest(request)
 
-    if (!customerId) {
+    if (!session) {
       return NextResponse.json({ customer: null }, { status: 401 })
     }
 
     const customer = await prisma.customer.findUnique({
-      where: { id: customerId },
+      where: { id: session.customerId },
       select: {
         id: true,
         name: true,

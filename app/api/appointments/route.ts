@@ -1,18 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
+import { authorizeAdmin } from "@/lib/admin-auth"
 
 const appointmentSchema = z.object({
   serviceId: z.string().min(1, "خدمت الزامی است"),
   barberId: z.string().min(1, "آرایشگر الزامی است"),
   date: z.string().datetime(),
-  customerName: z.string().min(1, "نام مشتری الزامی است"),
-  customerPhone: z.string().min(1, "شماره تماس الزامی است"),
+  customerName: z.string().min(1, "نام مشتری الزامی است").max(100),
+  customerPhone: z.string().min(1, "شماره تماس الزامی است").max(20),
   customerEmail: z.string().email().optional().or(z.literal("")),
-  notes: z.string().optional(),
+  notes: z.string().max(500).optional(),
 })
 
 export async function GET(request: NextRequest) {
+  const auth = authorizeAdmin(request)
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
@@ -54,6 +60,11 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = authorizeAdmin(request)
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const body = await request.json()
     const validated = appointmentSchema.parse(body)
@@ -70,22 +81,27 @@ export async function POST(request: NextRequest) {
       where: {
         barberId: validated.barberId,
         date: appointmentDate,
-        status: { in: ['PENDING', 'CONFIRMED'] },
+        status: { in: ["HELD", "AWAITING_PAYMENT", "CONFIRMED", "COMPLETED"] },
       },
     })
 
     if (existingAppointment) {
-      return NextResponse.json({ error: "این زمان قبلاً رزرو شده است" }, { status: 400 })
+      return NextResponse.json({ error: "این زمان قبلاً رزرو شده است" }, { status: 409 })
     }
 
     const trackingCode = `KB-${Math.floor(10000 + Math.random() * 90000)}`
     const appointment = await prisma.appointment.create({
       data: {
-        ...validated,
+        serviceId: validated.serviceId,
+        barberId: validated.barberId,
+        customerName: validated.customerName,
+        customerPhone: validated.customerPhone,
+        customerEmail: validated.customerEmail || null,
+        notes: validated.notes || null,
         trackingCode,
         date: appointmentDate,
         endDate: new Date(appointmentDate.getTime() + service.duration * 60000),
-        status: 'HELD',
+        status: "HELD",
         totalPrice: service.price,
         depositPaid: 0,
         balanceDue: service.price,

@@ -4,6 +4,14 @@
  * and ZarinPal Provider (Sandbox & Live production with Tomans -> Rials conversion)
  */
 
+import {
+  fetchJsonWithTimeout,
+  generateCorrelationId,
+  logProviderTelemetry,
+  sanitizeTelemetryText,
+  type FailureCategory,
+} from "../http"
+
 export interface InitiatePaymentParams {
   amountToman: number
   callbackUrl: string
@@ -15,6 +23,8 @@ export interface InitiatePaymentParams {
 export interface InitiatePaymentResult {
   authority: string
   redirectUrl: string
+  correlationId?: string
+  durationMs?: number
   rawResponse?: unknown
 }
 
@@ -29,6 +39,11 @@ export interface VerifyPaymentResult {
   cardPan?: string
   errorCode?: string
   errorMessage?: string
+  isUncertain?: boolean
+  failureCategory?: FailureCategory
+  correlationId?: string
+  durationMs?: number
+  providerStatus?: number | string | null
 }
 
 export interface PaymentGatewayProvider {
@@ -128,13 +143,24 @@ class ZarinPalPaymentGatewayImpl implements PaymentGatewayProvider {
   }
 
   async initiatePayment(params: InitiatePaymentParams): Promise<InitiatePaymentResult> {
+    const correlationId = generateCorrelationId("zp")
     if (!this.merchantId) {
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "initiatePayment",
+        correlationId,
+        durationMs: 0,
+        responseStatus: null,
+        failureCategory: "CONFIG_ERROR",
+        finalState: "FAILED",
+        errorSummary: "Missing ZARINPAL_MERCHANT_ID",
+      })
       throw new Error("شناسه درگاه زرین‌پال (Merchant ID) تنظیم نشده است")
     }
 
     // Convert Tomans to Rials reliably without floating point math
     const amountRial = Math.round(params.amountToman) * 10
-
+    const timeoutMs = Math.max(1000, parseInt(process.env.PAYMENT_TIMEOUT_MS || "10000", 10) || 10000)
     const endpoint = `${this.getBaseUrl()}/request.json`
     const payload = {
       merchant_id: this.merchantId,
@@ -148,39 +174,109 @@ class ZarinPalPaymentGatewayImpl implements PaymentGatewayProvider {
       },
     }
 
-    const res = await fetch(endpoint, {
+    type ZpReqResp = {
+      data?: { code?: number; authority?: string; message?: string }
+      errors?: { code?: number; message?: string }
+    }
+
+    // Bounded single attempt — never retry payment initiation blindly
+    const httpRes = await fetchJsonWithTimeout<ZpReqResp>(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
       },
       body: JSON.stringify(payload),
+      timeoutMs,
+      provider: this.name,
+      operation: "initiatePayment",
+      correlationId,
     })
 
-    const data = await res.json()
-    if (data.data?.code === 100 && data.data?.authority) {
-      const authority = data.data.authority
+    if (!httpRes.ok || !httpRes.data) {
+      const providerErr = httpRes.data?.errors?.message || httpRes.errorMessage || "امکان اتصال به درگاه پرداخت وجود ندارد"
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "initiatePayment",
+        correlationId,
+        durationMs: httpRes.durationMs,
+        responseStatus: httpRes.httpStatus,
+        failureCategory: httpRes.failureCategory,
+        finalState: "FAILED",
+        errorSummary: providerErr,
+      })
+      throw new Error(`خطای درگاه زرین‌پال: ${sanitizeTelemetryText(providerErr)}`)
+    }
+
+    const code = httpRes.data.data?.code
+    const authority = httpRes.data.data?.authority
+    if (code === 100 && typeof authority === "string" && authority.length > 0) {
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "initiatePayment",
+        correlationId,
+        durationMs: httpRes.durationMs,
+        responseStatus: code,
+        failureCategory: "OK",
+        finalState: "AUTHORITY_ISSUED",
+      })
       return {
         authority,
         redirectUrl: this.getStartPayUrl(authority),
-        rawResponse: data,
+        correlationId,
+        durationMs: httpRes.durationMs,
+        rawResponse: httpRes.data,
       }
     }
 
-    throw new Error(
-      `خطای درگاه زرین‌پال: ${data.errors?.message || data.data?.message || "امکان اتصال وجود ندارد"}`
-    )
+    const providerMsg =
+      httpRes.data.errors?.message || httpRes.data.data?.message || "امکان اتصال وجود ندارد"
+    logProviderTelemetry({
+      provider: this.name,
+      operation: "initiatePayment",
+      correlationId,
+      durationMs: httpRes.durationMs,
+      responseStatus: httpRes.data.errors?.code ?? code ?? httpRes.httpStatus,
+      failureCategory: "PROVIDER_ERROR",
+      finalState: "REJECTED",
+      errorSummary: providerMsg,
+    })
+    throw new Error(`خطای درگاه زرین‌پال: ${sanitizeTelemetryText(providerMsg)}`)
   }
 
   async verifyPayment(params: VerifyPaymentParams): Promise<VerifyPaymentResult> {
+    const correlationId = generateCorrelationId("zp")
     if (!this.merchantId) {
-      return { success: false, errorMessage: "شناسه درگاه تنظیم نشده است" }
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "verifyPayment",
+        correlationId,
+        durationMs: 0,
+        responseStatus: null,
+        failureCategory: "CONFIG_ERROR",
+        finalState: "FAILED",
+        errorSummary: "Missing ZARINPAL_MERCHANT_ID",
+      })
+      return {
+        success: false,
+        isUncertain: false,
+        failureCategory: "CONFIG_ERROR",
+        errorMessage: "شناسه درگاه تنظیم نشده است",
+        correlationId,
+        durationMs: 0,
+      }
     }
 
     const amountRial = Math.round(params.amountToman) * 10
+    const timeoutMs = Math.max(1000, parseInt(process.env.PAYMENT_TIMEOUT_MS || "10000", 10) || 10000)
     const endpoint = `${this.getBaseUrl()}/verify.json`
 
-    const res = await fetch(endpoint, {
+    type ZpVerifyResp = {
+      data?: { code?: number; ref_id?: number | string; card_pan?: string; message?: string }
+      errors?: { code?: number; message?: string }
+    }
+
+    const httpRes = await fetchJsonWithTimeout<ZpVerifyResp>(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -191,29 +287,154 @@ class ZarinPalPaymentGatewayImpl implements PaymentGatewayProvider {
         amount: amountRial,
         authority: params.authority,
       }),
+      timeoutMs,
+      provider: this.name,
+      operation: "verifyPayment",
+      correlationId,
     })
 
-    const data = await res.json()
-    const code = data.data?.code
+    if (!httpRes.ok || !httpRes.data) {
+      // Explicit 4xx JSON error from ZarinPal (not 429) indicates definitive gateway rejection
+      const hasExplicitBankRejection =
+        httpRes.httpStatus !== null &&
+        httpRes.httpStatus >= 400 &&
+        httpRes.httpStatus < 500 &&
+        httpRes.httpStatus !== 429 &&
+        Boolean(httpRes.data?.errors?.code !== undefined)
 
-    // 100: Successful payment, 101: Already verified (Idempotent!)
-    if (code === 100 || code === 101) {
+      const isUncertain = !hasExplicitBankRejection
+      const errorCode =
+        httpRes.data?.errors?.code !== undefined
+          ? String(httpRes.data.errors.code)
+          : String(httpRes.httpStatus ?? httpRes.failureCategory)
+      const errorMessage =
+        httpRes.data?.errors?.message ||
+        httpRes.errorMessage ||
+        "خطا در تایید تراکنش با درگاه پرداخت"
+
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "verifyPayment",
+        correlationId,
+        durationMs: httpRes.durationMs,
+        responseStatus: httpRes.httpStatus ?? httpRes.failureCategory,
+        failureCategory: httpRes.failureCategory,
+        finalState: isUncertain ? "UNCERTAIN_PENDING" : "FAILED",
+        errorSummary: errorMessage,
+      })
+
       return {
-        success: true,
-        refId: String(data.data.ref_id),
-        cardPan: data.data.card_pan,
+        success: false,
+        isUncertain,
+        failureCategory: httpRes.failureCategory,
+        errorCode,
+        errorMessage: sanitizeTelemetryText(errorMessage),
+        correlationId,
+        durationMs: httpRes.durationMs,
+        providerStatus: httpRes.httpStatus,
       }
     }
 
+    const dataObj = httpRes.data.data
+    const code = dataObj?.code
+
+    // 100: Successful payment, 101: Already verified (Idempotent)
+    if (code === 100 || code === 101) {
+      if (dataObj?.ref_id === undefined || dataObj?.ref_id === null || String(dataObj.ref_id).trim() === "") {
+        logProviderTelemetry({
+          provider: this.name,
+          operation: "verifyPayment",
+          correlationId,
+          durationMs: httpRes.durationMs,
+          responseStatus: code,
+          failureCategory: "INVALID_JSON",
+          finalState: "UNCERTAIN_PENDING",
+          errorSummary: "Verified code returned without ref_id",
+        })
+        return {
+          success: false,
+          isUncertain: true,
+          failureCategory: "INVALID_JSON",
+          errorCode: String(code),
+          errorMessage: "پاسخ تایید درگاه فاقد شماره مرجع معتبر است",
+          correlationId,
+          durationMs: httpRes.durationMs,
+          providerStatus: code,
+        }
+      }
+
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "verifyPayment",
+        correlationId,
+        durationMs: httpRes.durationMs,
+        responseStatus: code,
+        failureCategory: "OK",
+        finalState: code === 101 ? "ALREADY_VERIFIED" : "VERIFIED",
+      })
+
+      return {
+        success: true,
+        refId: String(dataObj.ref_id),
+        cardPan: dataObj.card_pan,
+        failureCategory: "OK",
+        correlationId,
+        durationMs: httpRes.durationMs,
+        providerStatus: code,
+      }
+    }
+
+    // Explicit non-100/101 business rejection or unexpected shape
+    const explicitErrCode = httpRes.data.errors?.code ?? code
+    if (explicitErrCode !== undefined) {
+      const msg = httpRes.data.errors?.message || dataObj?.message || "تراکنش تایید نشد"
+      logProviderTelemetry({
+        provider: this.name,
+        operation: "verifyPayment",
+        correlationId,
+        durationMs: httpRes.durationMs,
+        responseStatus: explicitErrCode,
+        failureCategory: "PROVIDER_ERROR",
+        finalState: "REJECTED",
+        errorSummary: msg,
+      })
+      return {
+        success: false,
+        isUncertain: false,
+        failureCategory: "PROVIDER_ERROR",
+        errorCode: String(explicitErrCode),
+        errorMessage: sanitizeTelemetryText(msg),
+        correlationId,
+        durationMs: httpRes.durationMs,
+        providerStatus: explicitErrCode,
+      }
+    }
+
+    logProviderTelemetry({
+      provider: this.name,
+      operation: "verifyPayment",
+      correlationId,
+      durationMs: httpRes.durationMs,
+      responseStatus: httpRes.httpStatus,
+      failureCategory: "INVALID_JSON",
+      finalState: "UNCERTAIN_PENDING",
+      errorSummary: "Unexpected ZarinPal verify payload shape",
+    })
     return {
       success: false,
-      errorCode: String(code || -1),
-      errorMessage: data.errors?.message || "تراکنش تایید نشد",
+      isUncertain: true,
+      failureCategory: "INVALID_JSON",
+      errorCode: "-1",
+      errorMessage: "ساختار پاسخ درگاه پرداخت نامعتبر است",
+      correlationId,
+      durationMs: httpRes.durationMs,
+      providerStatus: httpRes.httpStatus,
     }
   }
 }
 
 export const MockPaymentGateway = MockPaymentGatewayImpl
+export const ZarinPalPaymentGateway = ZarinPalPaymentGatewayImpl
 
 export function getPaymentGateway(): PaymentGatewayProvider {
   const mode = process.env.PAYMENT_GATEWAY || "MOCK"

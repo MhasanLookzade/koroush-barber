@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { authorizeAdmin } from "@/lib/admin-auth"
+import { sanitizeTelemetryInput } from "@/lib/http"
 import {
   createUtcFromTehranTime,
   getTehranDateString,
@@ -8,6 +9,7 @@ import {
   formatJalaliFull,
 } from "@/lib/jalali"
 import { isValidSlotTime } from "@/lib/booking-engine"
+import { enqueueNotificationJob, processNotificationJob } from "@/lib/notifications"
 
 export const dynamic = "force-dynamic"
 
@@ -151,18 +153,15 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      // 9. Prepare SMS notification
+      // 9. Enqueue reschedule SMS notification in transactional outbox (never mark SENT optimistically!)
       const smsMessage = `کوروش باربر\nزمان نوبت شما تغییر کرد.\nتاریخ جدید: ${newJalali}\nساعت جدید: ${newTimeStr}\nکد پیگیری: ${app.trackingCode}`
-      await tx.notificationJob.create({
-        data: {
-          phone: app.customerPhone,
-          recipientName: app.customerName,
-          type: "RESCHEDULE",
-          message: smsMessage,
-          status: "SENT",
-          sentAt: new Date(),
-          provider: "SMS_IR",
-        },
+      const enqueuedNotif = await enqueueNotificationJob(tx, {
+        phone: app.customerPhone,
+        recipientName: app.customerName,
+        type: "RESCHEDULE",
+        message: smsMessage,
+        dedupKey: `RESCHEDULE:${app.id}:${newDateStr}:${newTimeStr}`,
+        dedupContains: `تاریخ جدید: ${newJalali}\nساعت جدید: ${newTimeStr}\nکد پیگیری: ${app.trackingCode}`,
       })
 
       return {
@@ -172,12 +171,26 @@ export async function POST(request: NextRequest) {
         newDateStr,
         newTimeStr,
         newJalali,
+        notificationJobId: enqueuedNotif.enqueued ? enqueuedNotif.job.id : null,
       }
     })
+
+    // 10. Deliver notification strictly AFTER DB transaction commits (failed SMS never rolls back reschedule)
+    let notificationStatus: string = "SKIPPED"
+    if (result.notificationJobId) {
+      try {
+        const delivery = await processNotificationJob(result.notificationJobId)
+        notificationStatus = delivery.finalStatus
+      } catch (notifErr) {
+        console.error("[AdminReschedule] Outbox dispatch failed after commit:", sanitizeTelemetryInput(notifErr))
+        notificationStatus = "RETRY_PENDING"
+      }
+    }
 
     return NextResponse.json({
       success: true,
       message: "زمان نوبت با موفقیت تغییر کرد.",
+      notificationStatus,
       appointment: {
         id: result.updatedApp.id,
         trackingCode: result.updatedApp.trackingCode,
@@ -194,7 +207,7 @@ export async function POST(request: NextRequest) {
       },
     })
   } catch (error: unknown) {
-    console.error("Admin reschedule appointment error:", error)
+    console.error("Admin reschedule appointment error:", sanitizeTelemetryInput(error))
     const message = error instanceof Error ? error.message : "خطا در تغییر زمان نوبت"
     const isConflict = message.includes("قبلاً برای نوبت دیگری") || message.includes("تعطیل است") || message.includes("مسدود شده")
     return NextResponse.json(

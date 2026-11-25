@@ -1,6 +1,7 @@
 import { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { verifyAdminToken } from "@/lib/auth"
 import { AdminBarbersClient } from "./AdminBarbersClient"
 
 export const metadata: Metadata = {
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
 export default async function AdminBarbersPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get("admin_token")?.value || cookieStore.get("admin_auth")?.value
-  if (!token) {
+  if (!token || !verifyAdminToken(token)) {
     redirect("/admin-login")
   }
 

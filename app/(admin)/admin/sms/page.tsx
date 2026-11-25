@@ -38,11 +38,49 @@ interface NotificationJobItem {
   recipientName?: string | null
   type: string
   message: string
-  status: "PENDING" | "SENT" | "FAILED"
+  status: "QUEUED" | "PENDING" | "SENDING" | "RETRY_PENDING" | "SENT" | "FAILED" | "UNKNOWN"
   error?: string | null
   provider: string
   sentAt?: string | null
   createdAt: string
+}
+
+function getJobStatusMeta(status: NotificationJobItem["status"]): {
+  label: string
+  badgeClass: string
+} {
+  switch (status) {
+    case "SENT":
+      return {
+        label: "پذیرفته‌شده در سرویس‌دهنده",
+        badgeClass: "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30",
+      }
+    case "FAILED":
+      return {
+        label: "خطا در ارسال",
+        badgeClass: "bg-red-950/40 text-red-400 border border-red-500/30",
+      }
+    case "UNKNOWN":
+      return {
+        label: "نامشخص (نیاز به بررسی)",
+        badgeClass: "bg-amber-950/50 text-amber-300 border border-amber-500/40",
+      }
+    case "SENDING":
+      return {
+        label: "در حال ارسال...",
+        badgeClass: "bg-sky-950/40 text-sky-300 border border-sky-500/30",
+      }
+    case "RETRY_PENDING":
+      return {
+        label: "در انتظار تلاش مجدد",
+        badgeClass: "bg-yellow-950/40 text-yellow-300 border border-yellow-500/30",
+      }
+    default:
+      return {
+        label: "در صف",
+        badgeClass: "bg-[#1E2521] text-[#E4C88E] border border-[#C8A96B]/30",
+      }
+  }
 }
 
 export interface SmsTemplateItem {
@@ -96,6 +134,7 @@ interface SmsCenterResponse {
     sent: number
     pending: number
     failed: number
+    unknown: number
   }
   jobs: NotificationJobItem[]
 }
@@ -174,6 +213,7 @@ export default function AdminSmsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL")
   const [typeFilter, setTypeFilter] = useState("ALL")
   const [retryingId, setRetryingId] = useState<string | null>(null)
+  const [logsFeedback, setLogsFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
   // Fetch Central SMS Data
   const fetchSmsData = async (queryCustomerId?: string) => {
@@ -326,11 +366,17 @@ export default function AdminSmsPage() {
       const result = await res.json()
       if (!res.ok) throw new Error(result.error || "خطا در ارسال پیامک")
 
-      setSendSuccess(`پیامک با موفقیت به ${recipientName || recipientPhone} ارسال گردید.`)
-      setRecipientPhone("")
-      setRecipientName("")
-      setComposeMessage("")
-      setSelectedTemplateId("")
+      if (result.success) {
+        setSendSuccess(`درخواست پیامک برای ${recipientName || recipientPhone} توسط سرویس‌دهنده پذیرفته شد (ACCEPTED_BY_PROVIDER).`)
+        setRecipientPhone("")
+        setRecipientName("")
+        setComposeMessage("")
+        setSelectedTemplateId("")
+      } else {
+        setSendError(
+          `پیامک در صف ثبت شد اما ارسال با وضعیت «${result.deliveryStatus || result.job?.status || "ناموفق"}» متوقف گردید.`
+        )
+      }
       fetchSmsData()
     } catch (err: unknown) {
       setSendError(err instanceof Error ? err.message : "خطا در ارسال پیامک")
@@ -458,19 +504,80 @@ export default function AdminSmsPage() {
     }
   }
 
-  // Retry Failed Job
-  const handleRetryJob = async (jobId: string) => {
+  // Retry Failed or Confirmed-Unknown Job (guarded against double clicks)
+  const handleRetryJob = async (jobId: string, isUnknown = false) => {
+    if (retryingId) return
+    setLogsFeedback(null)
+    if (
+      isUnknown &&
+      !confirm(
+        "وضعیت این پیام نامشخص است؛ ممکن است قبلاً توسط سرویس پیامک ثبت شده باشد. آیا با بررسی قبلی و پذیرش احتمال ارسال مجدد، ارسال دوباره را تایید می‌کنید؟"
+      )
+    ) {
+      return
+    }
     try {
       setRetryingId(jobId)
       const res = await fetch("/api/admin/sms", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "retry", jobId }),
+        body: JSON.stringify({
+          action: "retry",
+          jobId,
+          ...(isUnknown ? { confirmUnknownResend: true } : {}),
+        }),
       })
-      if (!res.ok) throw new Error("خطا در تلاش مجدد")
-      fetchSmsData()
-    } catch {
-      alert("خطا در ارسال مجدد پیامک")
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload.error || "خطا در تلاش مجدد")
+
+      if (payload.finalStatus === "SENT") {
+        setLogsFeedback({
+          type: "success",
+          text: "درخواست پیامک با موفقیت توسط سرویس‌دهنده پذیرفته شد (ACCEPTED_BY_PROVIDER).",
+        })
+      } else {
+        setLogsFeedback({
+          type: "error",
+          text: `ارسال مجدد انجام شد اما وضعیت نهایی پیام «${payload.finalStatus || "ناموفق"}» است.`,
+        })
+      }
+      await fetchSmsData()
+    } catch (err: unknown) {
+      setLogsFeedback({
+        type: "error",
+        text: err instanceof Error ? err.message : "خطا در ارسال مجدد پیامک",
+      })
+    } finally {
+      setRetryingId(null)
+    }
+  }
+
+  // Reconcile UNKNOWN job status without resending
+  const handleReconcileUnknown = async (jobId: string, resolution: "MARK_SENT" | "MARK_FAILED") => {
+    if (retryingId) return
+    setLogsFeedback(null)
+    try {
+      setRetryingId(jobId)
+      const res = await fetch("/api/admin/sms", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reconcile_unknown", jobId, resolution }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload.error || "خطا در ثبت وضعیت")
+      setLogsFeedback({
+        type: "success",
+        text:
+          resolution === "MARK_SENT"
+            ? "وضعیت پیام بدون ارسال مجدد به عنوان پذیرفته‌شده در سرویس‌دهنده ثبت شد."
+            : "وضعیت پیام به عنوان ناموفق ثبت شد.",
+      })
+      await fetchSmsData()
+    } catch (err: unknown) {
+      setLogsFeedback({
+        type: "error",
+        text: err instanceof Error ? err.message : "خطا در ثبت وضعیت تطبیق",
+      })
     } finally {
       setRetryingId(null)
     }
@@ -522,9 +629,9 @@ export default function AdminSmsPage() {
         </div>
       )}
 
-      {/* 4 Stats Cards */}
+      {/* 5 Stats Cards */}
       {data && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
           <Card className="p-3.5 sm:p-4 rounded-2xl bg-[#141715] border border-[#242A27] text-right space-y-1">
             <div className="flex items-center justify-between text-xs text-[#A89E90]">
               <span>کل پیام‌ها</span>
@@ -537,7 +644,7 @@ export default function AdminSmsPage() {
 
           <Card className="p-3.5 sm:p-4 rounded-2xl bg-[#141715] border border-[#242A27] text-right space-y-1">
             <div className="flex items-center justify-between text-xs text-emerald-400">
-              <span>تحویل شده</span>
+              <span>پذیرش سرویس‌دهنده</span>
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-emerald-400">
@@ -556,6 +663,16 @@ export default function AdminSmsPage() {
           </Card>
 
           <Card className="p-3.5 sm:p-4 rounded-2xl bg-[#141715] border border-[#242A27] text-right space-y-1">
+            <div className="flex items-center justify-between text-xs text-amber-300">
+              <span>نامشخص (نیاز به بررسی)</span>
+              <HelpCircle className="w-4 h-4 text-amber-300" />
+            </div>
+            <div className="text-xl sm:text-2xl font-black font-heading persian-nums text-amber-300">
+              {toPersianDigits(data.stats.unknown ?? 0)}
+            </div>
+          </Card>
+
+          <Card className="p-3.5 sm:p-4 rounded-2xl bg-[#141715] border border-[#242A27] text-right space-y-1 col-span-2 sm:col-span-1">
             <div className="flex items-center justify-between text-xs text-red-400">
               <span>خطا / ناموفق</span>
               <AlertCircle className="w-4 h-4 text-red-400" />
@@ -1515,6 +1632,24 @@ export default function AdminSmsPage() {
       {/* ========================================================================= */}
       {activeTab === "logs" && (
         <div className="space-y-4">
+          {logsFeedback && (
+            <div
+              role="status"
+              className={`p-3.5 rounded-xl border text-xs flex items-center gap-2 ${
+                logsFeedback.type === "success"
+                  ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-200"
+                  : "bg-red-950/40 border-red-500/40 text-red-200"
+              }`}
+            >
+              {logsFeedback.type === "success" ? (
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+              ) : (
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              )}
+              <span>{logsFeedback.text}</span>
+            </div>
+          )}
+
           {/* Filter Bar */}
           <div className="p-3.5 rounded-2xl bg-[#141715] border border-[#242A27] flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center justify-between">
             <form
@@ -1543,9 +1678,10 @@ export default function AdminSmsPage() {
                 className="bg-[#101311] border border-[#2A332E] text-xs text-[#F7F4EE] rounded-xl px-3 py-2 focus:outline-none min-h-[44px]"
               >
                 <option value="ALL">تمامی وضعیت‌ها</option>
-                <option value="SENT">ارسال موفق</option>
+                <option value="SENT">پذیرفته‌شده در سرویس‌دهنده</option>
                 <option value="PENDING">در صف ارسال</option>
                 <option value="FAILED">ناموفق / خطا</option>
+                <option value="UNKNOWN">نامشخص (نیاز به بررسی)</option>
               </select>
 
               <select
@@ -1577,21 +1713,17 @@ export default function AdminSmsPage() {
             <>
               {/* Mobile Card View (< md) */}
               <div className="grid grid-cols-1 gap-3 md:hidden">
-                {data.jobs.map((job) => (
+                {data.jobs.map((job) => {
+                  const statusMeta = getJobStatusMeta(job.status)
+                  return (
                   <Card key={job.id} className="p-4 rounded-2xl bg-[#141715] border border-[#242A27] text-right space-y-2.5">
                     <div className="flex items-center justify-between pb-2 border-b border-[#202522]">
                       <div>
                         <div className="font-bold text-sm text-[#F7F4EE]">{job.recipientName || "مشتری سالن"}</div>
                         <span className="text-xs font-mono text-[#8C8477]" dir="ltr">{toPersianDigits(job.phone)}</span>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        job.status === "SENT"
-                          ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30"
-                          : job.status === "FAILED"
-                          ? "bg-red-950/40 text-red-400 border border-red-500/30"
-                          : "bg-[#1E2521] text-[#E4C88E] border border-[#C8A96B]/30"
-                      }`}>
-                        {job.status === "SENT" ? "ارسال شد" : job.status === "FAILED" ? "خطا" : "در صف"}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusMeta.badgeClass}`}>
+                        {statusMeta.label}
                       </span>
                     </div>
 
@@ -1599,26 +1731,55 @@ export default function AdminSmsPage() {
                       {job.message}
                     </div>
 
-                    {job.error && (
-                      <div className="text-[11px] text-red-400">علت خطا: {job.error}</div>
+                    {job.status === "UNKNOWN" && (
+                      <div className="text-[11px] text-amber-300 bg-amber-950/30 border border-amber-500/30 p-2 rounded-lg">
+                        احتمال ثبت پیام در سرویس پیامک وجود دارد. پیش از ارسال مجدد استعلام بگیرید.
+                      </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-1 text-[11px] text-[#7E776C]">
+                    {job.error && (
+                      <div className="text-[11px] text-red-400">جزئیات و تاریخچه: {job.error}</div>
+                    )}
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px] text-[#7E776C]">
                       <span>نوع: {job.type}</span>
-                      {job.status === "FAILED" && (
+                      {(job.status === "FAILED" || job.status === "RETRY_PENDING") && (
                         <Button
                           size="sm"
-                          disabled={retryingId === job.id}
-                          onClick={() => handleRetryJob(job.id)}
+                          disabled={retryingId !== null}
+                          onClick={() => handleRetryJob(job.id, false)}
                           className="h-8 px-2.5 text-xs bg-[#1C221F] text-[#E4C88E] hover:bg-[#C8A96B] hover:text-[#0D0F0E] border border-[#C8A96B]/30 cursor-pointer min-h-[44px] sm:min-h-0"
                         >
                           <RotateCw className="w-3.5 h-3.5 ml-1" />
                           <span>{retryingId === job.id ? "در حال ارسال..." : "ارسال مجدد"}</span>
                         </Button>
                       )}
+                      {job.status === "UNKNOWN" && (
+                        <div className="flex flex-wrap gap-1.5">
+                          <Button
+                            size="sm"
+                            disabled={retryingId !== null}
+                            onClick={() => handleReconcileUnknown(job.id, "MARK_SENT")}
+                            className="h-8 px-2 text-[11px] bg-emerald-950/40 text-emerald-300 hover:bg-emerald-700 hover:text-white border border-emerald-500/30 cursor-pointer min-h-[44px] sm:min-h-0"
+                          >
+                            <Check className="w-3 h-3 ml-1" />
+                            <span>تایید ارسال قبلی</span>
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={retryingId !== null}
+                            onClick={() => handleRetryJob(job.id, true)}
+                            className="h-8 px-2 text-[11px] bg-amber-950/40 text-amber-200 hover:bg-amber-600 hover:text-black border border-amber-500/40 cursor-pointer min-h-[44px] sm:min-h-0"
+                          >
+                            <RotateCw className="w-3 h-3 ml-1" />
+                            <span>{retryingId === job.id ? "در حال ارسال..." : "بررسی و ارسال مجدد"}</span>
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
 
               {/* Desktop Table View (>= md) */}
@@ -1636,7 +1797,9 @@ export default function AdminSmsPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#202522]">
-                      {data.jobs.map((job) => (
+                      {data.jobs.map((job) => {
+                        const statusMeta = getJobStatusMeta(job.status)
+                        return (
                         <tr key={job.id} className="hover:bg-[#181D1A]/50 transition-colors">
                           <td className="p-3.5 font-bold text-[#F7F4EE] whitespace-nowrap">
                             {job.recipientName || "مشتری سالن"}
@@ -1649,37 +1812,53 @@ export default function AdminSmsPage() {
                               {job.type}
                             </span>
                           </td>
-                          <td className="p-3.5 text-[#C5BDB2] max-w-xs truncate" title={job.message}>
+                          <td className="p-3.5 text-[#C5BDB2] max-w-xs truncate" title={job.error ? `${job.message}\n---\n${job.error}` : job.message}>
                             {job.message}
                           </td>
                           <td className="p-3.5 whitespace-nowrap">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              job.status === "SENT"
-                                ? "bg-emerald-950/40 text-emerald-400 border border-emerald-500/30"
-                                : job.status === "FAILED"
-                                ? "bg-red-950/40 text-red-400 border border-red-500/30"
-                                : "bg-[#1E2521] text-[#E4C88E] border border-[#C8A96B]/30"
-                            }`}>
-                              {job.status === "SENT" ? "ارسال شد" : job.status === "FAILED" ? "خطا" : "در صف"}
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${statusMeta.badgeClass}`}>
+                              {statusMeta.label}
                             </span>
                           </td>
                           <td className="p-3.5 whitespace-nowrap">
-                            {job.status === "FAILED" ? (
+                            {job.status === "FAILED" || job.status === "RETRY_PENDING" ? (
                               <Button
                                 size="sm"
-                                disabled={retryingId === job.id}
-                                onClick={() => handleRetryJob(job.id)}
+                                disabled={retryingId !== null}
+                                onClick={() => handleRetryJob(job.id, false)}
                                 className="h-7 px-2 text-[11px] bg-[#1C221F] text-[#E4C88E] hover:bg-[#C8A96B] hover:text-[#0D0F0E] border border-[#C8A96B]/30 cursor-pointer"
                               >
                                 <RotateCw className="w-3 h-3 ml-1" />
-                                <span>ارسال مجدد</span>
+                                <span>{retryingId === job.id ? "در حال ارسال..." : "ارسال مجدد"}</span>
                               </Button>
+                            ) : job.status === "UNKNOWN" ? (
+                              <div className="flex items-center gap-1.5">
+                                <Button
+                                  size="sm"
+                                  disabled={retryingId !== null}
+                                  onClick={() => handleReconcileUnknown(job.id, "MARK_SENT")}
+                                  className="h-7 px-2 text-[10px] bg-emerald-950/40 text-emerald-300 hover:bg-emerald-700 hover:text-white border border-emerald-500/30 cursor-pointer"
+                                >
+                                  <Check className="w-3 h-3 ml-1" />
+                                  <span>تایید ارسال</span>
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  disabled={retryingId !== null}
+                                  onClick={() => handleRetryJob(job.id, true)}
+                                  className="h-7 px-2 text-[10px] bg-amber-950/40 text-amber-200 hover:bg-amber-600 hover:text-black border border-amber-500/40 cursor-pointer"
+                                >
+                                  <RotateCw className="w-3 h-3 ml-1" />
+                                  <span>{retryingId === job.id ? "در حال ارسال..." : "ارسال مجدد"}</span>
+                                </Button>
+                              </div>
                             ) : (
                               <span className="text-[#6D6559]">—</span>
                             )}
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

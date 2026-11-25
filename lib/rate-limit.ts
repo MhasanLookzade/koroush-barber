@@ -10,8 +10,8 @@ interface RateLimitRecord {
 
 const rateLimitStore = new Map<string, RateLimitRecord>()
 
-// Clean up expired records periodically
-setInterval(() => {
+// Clean up expired records periodically without keeping Node event loop alive
+const cleanupTimer = setInterval(() => {
   const now = Date.now()
   rateLimitStore.forEach((record, key) => {
     if (now > record.resetTime) {
@@ -19,6 +19,9 @@ setInterval(() => {
     }
   })
 }, 60000)
+if (typeof cleanupTimer.unref === "function") {
+  cleanupTimer.unref()
+}
 
 export function checkRateLimit(
   key: string,
@@ -45,9 +48,17 @@ export function checkRateLimit(
 }
 
 export function getClientIp(req: Request): string {
+  // Prefer X-Real-IP set directly by trusted Nginx ($remote_addr) to prevent XFF spoofing
+  const realIp = req.headers.get("x-real-ip")?.trim()
+  if (realIp) {
+    return realIp
+  }
   const forwarded = req.headers.get("x-forwarded-for")
   if (forwarded) {
-    return forwarded.split(",")[0].trim()
+    const hops = forwarded.split(",").map((s) => s.trim()).filter(Boolean)
+    if (hops.length > 0) {
+      return hops[hops.length - 1]
+    }
   }
-  return req.headers.get("x-real-ip") || "127.0.0.1"
+  return "127.0.0.1"
 }

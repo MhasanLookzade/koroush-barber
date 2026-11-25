@@ -13,7 +13,14 @@ function MockPaymentContent({ authority }: { authority: string }) {
 
   const handleAction = (status: "OK" | "NOK", simulateDelay = false) => {
     setIsProcessing(true)
-    const targetUrl = new URL(callbackUrl, window.location.origin)
+    const fallbackUrl = new URL("/api/booking/callback", window.location.origin)
+    let targetUrl: URL
+    try {
+      const candidate = new URL(callbackUrl, window.location.origin)
+      targetUrl = candidate.origin === window.location.origin ? candidate : fallbackUrl
+    } catch {
+      targetUrl = fallbackUrl
+    }
     targetUrl.searchParams.set("Authority", authority)
     targetUrl.searchParams.set("Status", status)
 

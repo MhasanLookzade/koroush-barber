@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
+import { authorizeCustomer } from "@/lib/customer-auth"
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const customerId = request.cookies.get("customer_auth")?.value
-
-    if (!customerId) {
-      return NextResponse.json({ error: "غیرمجاز" }, { status: 401 })
+    const auth = authorizeCustomer(request)
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
     }
+    const customerId = auth.session.customerId
 
     const { id } = await params
 
@@ -38,11 +39,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const customerId = request.cookies.get("customer_auth")?.value
-
-    if (!customerId) {
-      return NextResponse.json({ error: "غیرمجاز" }, { status: 401 })
+    const auth = authorizeCustomer(request)
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
     }
+    const customerId = auth.session.customerId
 
     const { id } = await params
     const body = await request.json()

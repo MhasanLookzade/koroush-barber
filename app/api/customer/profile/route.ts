@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
+import { authorizeCustomer } from "@/lib/customer-auth"
 
 const updateProfileSchema = z.object({
   name: z.string().min(2, "نام باید حداقل ۲ کاراکتر باشد").optional(),
@@ -16,11 +17,11 @@ const changePasswordSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const customerId = request.cookies.get("customer_auth")?.value
-
-    if (!customerId) {
-      return NextResponse.json({ error: "غیرمجاز" }, { status: 401 })
+    const auth = authorizeCustomer(request)
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
     }
+    const customerId = auth.session.customerId
 
     const customer = await prisma.customer.findUnique({
       where: { id: customerId },
@@ -49,11 +50,11 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const customerId = request.cookies.get("customer_auth")?.value
-
-    if (!customerId) {
-      return NextResponse.json({ error: "غیرمجاز" }, { status: 401 })
+    const auth = authorizeCustomer(request)
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
     }
+    const customerId = auth.session.customerId
 
     const body = await request.json()
     const isPasswordChange = "currentPassword" in body

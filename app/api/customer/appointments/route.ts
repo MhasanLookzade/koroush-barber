@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
+import { authorizeCustomer } from "@/lib/customer-auth"
 
 export const dynamic = "force-dynamic"
 
@@ -12,11 +13,11 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const customerId = request.cookies.get("customer_auth")?.value
-
-    if (!customerId) {
-      return NextResponse.json({ error: "غیرمجاز" }, { status: 401 })
+    const auth = authorizeCustomer(request)
+    if ("errorResponse" in auth) {
+      return auth.errorResponse
     }
+    const customerId = auth.session.customerId
 
     const { searchParams } = new URL(request.url)
     const validated = querySchema.parse({

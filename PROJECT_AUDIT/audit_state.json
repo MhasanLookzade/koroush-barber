@@ -1,0 +1,81 @@
+{
+  "auditTimestamp": "2026-11-25T01:47:05.067Z",
+  "project": "Koroush Barber (barberbook)",
+  "totalDiscoveredFiles": 356,
+  "excludedDirectories": [
+    {
+      "path": ".claude",
+      "reason": "Generated/dependency/hidden directory"
+    },
+    {
+      "path": ".git",
+      "reason": "Generated/dependency/hidden directory"
+    },
+    {
+      "path": ".next",
+      "reason": "Generated/dependency/hidden directory"
+    },
+    {
+      "path": "node_modules",
+      "reason": "Generated/dependency/hidden directory"
+    }
+  ],
+  "phasesCompleted": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+  ],
+  "phasesPending": [],
+  "issueSummary": {
+    "total": 24,
+    "CRITICAL": 2,
+    "HIGH": 8,
+    "MEDIUM": 11,
+    "LOW": 3,
+    "INFORMATIONAL": 0
+  },
+  "executedTests": [
+    {
+      "command": "npx tsc --noEmit",
+      "result": "PASS (0 errors)"
+    },
+    {
+      "command": "npm run test:acceptance",
+      "result": "PASS (32/32)"
+    },
+    {
+      "command": "npm run test:db",
+      "result": "PASS (22/22 after clean reset; initial run 18/22 due to leftover rows)"
+    },
+    {
+      "command": "node test/e2e_responsive.js",
+      "result": "PASS (11/11 viewports, 0 console errors)"
+    },
+    {
+      "command": "node test/admin_responsive.js",
+      "result": "PASS (40/40 route x viewport checks)"
+    },
+    {
+      "command": "npm run build",
+      "result": "PASS (50/50 routes)"
+    },
+    {
+      "command": "npm run lint",
+      "result": "FAIL (interactive ESLint setup prompt; no .eslintrc.json)"
+    }
+  ]
+}

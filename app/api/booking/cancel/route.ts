@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { normalizeIranianPhone } from "@/lib/providers/sms"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const rate = checkRateLimit(`cancel_ip_${ip}`, 10, 10 * 60 * 1000)
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: "تعداد درخواست‌های لغو نوبت بیش از حد مجاز است. لطفاً دقایقی دیگر تلاش نمایید." },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { trackingCode, phone, reason } = body
 

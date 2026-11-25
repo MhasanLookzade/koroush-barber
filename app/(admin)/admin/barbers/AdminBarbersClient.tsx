@@ -33,7 +33,7 @@ import {
   Check,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useToast } from "@/hooks/use-toast"
+import { useToast, ToastProviderComponent } from "@/hooks/use-toast"
 
 interface Service {
   id: string
@@ -93,7 +93,7 @@ const daysOfWeek = [
   { value: 6, label: "شنبه" },
 ]
 
-export function AdminBarbersClient() {
+function AdminBarbersContent() {
   const { toast } = useToast()
   const [barbers, setBarbers] = useState<Barber[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -554,5 +554,13 @@ export function AdminBarbersClient() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export function AdminBarbersClient() {
+  return (
+    <ToastProviderComponent>
+      <AdminBarbersContent />
+    </ToastProviderComponent>
   )
 }

@@ -1,0 +1,14 @@
+flowchart TB
+    Client["Customer / Admin Browser (RTL)"] -->|"HTTPS :443"| Nginx["Nginx Reverse Proxy"]
+    Nginx -->|"HTTP 127.0.0.1:3000"| MW["Next.js Middleware (edge-auth)"]
+    MW -->|"/admin/* (protected)"| AdminUI["Admin Dashboard"]
+    MW -->|"Public / Customer"| PublicUI["Booking & Customer Portal"]
+    AdminUI --> AdminAPI["/api/admin/* (authorizeAdmin)"]
+    PublicUI --> BookingAPI["/api/booking/*"]
+    PublicUI --> CustAPI["/api/customer/* (SEC-001: unsigned cookie)"]
+    PublicUI --> LegacyAPI["/api/appointments, /barbers, /services (SEC-002: NO AUTH)"]
+    AdminAPI --> Engine["lib/booking-engine.ts"]
+    BookingAPI --> Engine
+    Engine --> DB[("PostgreSQL 16 (Prod) / SQLite (Dev)")]
+    Engine --> ZarinPal["ZarinPal IPG v4"]
+    Engine --> Kavenegar["Kavenegar SMS API"]

@@ -1,0 +1,6 @@
+# Phase 1.1 — Token & Runtime Compatibility Review
+
+## 1. Node.js vs Edge Runtime Parity (`lib/auth.ts` vs `lib/edge-auth.ts`)
+- **Secret Resolution:** Both `getAuthSecret("admin")` (`lib/auth.ts`) and `getEdgeAuthSecret()` (`lib/edge-auth.ts`) resolve `process.env.ADMIN_JWT_SECRET || process.env.NEXTAUTH_SECRET`, enforce identical `INSECURE_FALLBACK_SECRETS` and 32-char minimum in production runtime, skip throwing during `NEXT_PHASE === "phase-production-build"`, and use the identical `DEV_EPHEMERAL_SECRET` in dev/test.
+- **Crypto API:** `lib/auth.ts` uses Node `crypto.createHmac("sha256", ...)` + `crypto.timingSafeEqual`; `lib/edge-auth.ts` uses Web Crypto `crypto.subtle.importKey` + `crypto.subtle.sign` + constant-time `constantTimeEqual`. Base64url encoding/decoding is identical across both runtimes.
+- **Verified Cross-Runtime:** `test/phase1_auth_security.test.ts` verified tokens signed by `signAdminToken()` (Node) validate identically in `verifyAdminToken()` (Node) and `verifyAdminTokenEdge()` (Edge), and live HTTP checks confirmed `middleware.ts` (Edge) and `app/(admin)/layout.tsx` (Node Server Component) accept the same `admin_token` across 10/10 functional admin routes (`200 OK`) and reject unauthenticated requests (`307`).

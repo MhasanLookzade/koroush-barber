@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
+import { authorizeAdmin, getAdminFromRequest } from "@/lib/admin-auth"
 
 const workingHoursSchema = z.object({
   dayOfWeek: z.number().min(0).max(6),
@@ -10,24 +11,40 @@ const workingHoursSchema = z.object({
 })
 
 const barberSchema = z.object({
-  name: z.string().min(1, "نام آرایشگر الزامی است"),
+  name: z.string().min(1, "نام آرایشگر الزامی است").max(100),
+  title: z.string().max(100).optional(),
   email: z.string().email("ایمیل معتبر وارد کنید").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  bio: z.string().optional(),
+  phone: z.string().max(20).optional(),
+  bio: z.string().max(1000).optional(),
   avatar: z.string().url().optional().or(z.literal("")),
+  isActive: z.boolean().optional(),
   serviceIds: z.array(z.string()).default([]),
   workingHours: z.array(workingHoursSchema).default([]),
 })
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const isAdmin = Boolean(getAdminFromRequest(request))
     const barbers = await prisma.barber.findMany({
-      where: { isActive: true },
-      include: {
-        services: true,
+      where: isAdmin ? undefined : { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        title: true,
+        bio: true,
+        avatar: true,
+        rating: true,
+        reviewCount: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        ...(isAdmin ? { email: true, phone: true } : {}),
+        services: {
+          select: { id: true, name: true, isActive: true },
+        },
         workingHours: true,
       },
-      orderBy: { name: 'asc' },
+      orderBy: { name: "asc" },
     })
     return NextResponse.json(barbers)
   } catch (error) {
@@ -37,20 +54,36 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = authorizeAdmin(request, "OWNER")
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const body = await request.json()
     const validated = barberSchema.parse(body)
 
-    const { serviceIds, workingHours, ...barberData } = validated
+    const { serviceIds, workingHours } = validated
 
     const barber = await prisma.barber.create({
       data: {
-        ...barberData,
+        name: validated.name,
+        title: validated.title || null,
+        email: validated.email || null,
+        phone: validated.phone || null,
+        bio: validated.bio || null,
+        avatar: validated.avatar || null,
+        isActive: validated.isActive ?? true,
         services: {
-          connect: serviceIds.map(id => ({ id })),
+          connect: serviceIds.map((id) => ({ id })),
         },
         workingHours: {
-          create: workingHours,
+          create: workingHours.map((wh) => ({
+            dayOfWeek: wh.dayOfWeek,
+            startTime: wh.startTime,
+            endTime: wh.endTime,
+            isWorking: wh.isWorking,
+          })),
         },
       },
       include: {

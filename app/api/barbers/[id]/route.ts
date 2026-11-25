@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
+import { authorizeAdmin, getAdminFromRequest } from "@/lib/admin-auth"
 
 const workingHoursSchema = z.object({
   id: z.string().optional(),
@@ -11,10 +12,11 @@ const workingHoursSchema = z.object({
 })
 
 const barberSchema = z.object({
-  name: z.string().min(1, "نام آرایشگر الزامی است").optional(),
+  name: z.string().min(1, "نام آرایشگر الزامی است").max(100).optional(),
+  title: z.string().max(100).optional(),
   email: z.string().email("ایمیل معتبر وارد کنید").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  bio: z.string().optional(),
+  phone: z.string().max(20).optional(),
+  bio: z.string().max(1000).optional(),
   avatar: z.string().url().optional().or(z.literal("")),
   isActive: z.boolean().optional(),
   serviceIds: z.array(z.string()).optional(),
@@ -27,22 +29,42 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    if (!id) {
+      return NextResponse.json({ error: "شناسه نامعتبر است" }, { status: 400 })
+    }
+    const isAdmin = Boolean(getAdminFromRequest(request))
+
     const barber = await prisma.barber.findUnique({
       where: { id },
-      include: {
-        services: true,
-        workingHours: true,
-        appointments: {
-          where: {
-            status: { in: ['PENDING', 'CONFIRMED'] },
-            date: { gte: new Date() },
-          },
-          orderBy: { date: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        title: true,
+        bio: true,
+        avatar: true,
+        rating: true,
+        reviewCount: true,
+        isActive: true,
+        ...(isAdmin ? { email: true, phone: true } : {}),
+        services: {
+          select: { id: true, name: true, isActive: true },
         },
+        workingHours: true,
+        ...(isAdmin
+          ? {
+              appointments: {
+                where: {
+                  status: { in: ["HELD", "CONFIRMED"] },
+                  date: { gte: new Date() },
+                },
+                orderBy: { date: "asc" },
+              },
+            }
+          : {}),
       },
     })
 
-    if (!barber) {
+    if (!barber || (!isAdmin && !barber.isActive)) {
       return NextResponse.json({ error: "آرایشگر یافت نشد" }, { status: 404 })
     }
 
@@ -57,29 +79,52 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = authorizeAdmin(request, "OWNER")
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const { id } = await params
+    if (!id) {
+      return NextResponse.json({ error: "شناسه نامعتبر است" }, { status: 400 })
+    }
+    const existing = await prisma.barber.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: "آرایشگر یافت نشد" }, { status: 404 })
+    }
+
     const body = await request.json()
     const validated = barberSchema.parse(body)
 
-    const { serviceIds, workingHours, ...barberData } = validated
+    const { serviceIds, workingHours } = validated
 
     const barber = await prisma.barber.update({
       where: { id },
       data: {
-        ...barberData,
-        services: serviceIds ? {
-          set: serviceIds.map(sid => ({ id: sid })),
-        } : undefined,
-        workingHours: workingHours ? {
-          deleteMany: {},
-          create: workingHours.map(wh => ({
-            dayOfWeek: wh.dayOfWeek,
-            startTime: wh.startTime,
-            endTime: wh.endTime,
-            isWorking: wh.isWorking,
-          })),
-        } : undefined,
+        ...(validated.name !== undefined ? { name: validated.name } : {}),
+        ...(validated.title !== undefined ? { title: validated.title || null } : {}),
+        ...(validated.email !== undefined ? { email: validated.email || null } : {}),
+        ...(validated.phone !== undefined ? { phone: validated.phone || null } : {}),
+        ...(validated.bio !== undefined ? { bio: validated.bio || null } : {}),
+        ...(validated.avatar !== undefined ? { avatar: validated.avatar || null } : {}),
+        ...(validated.isActive !== undefined ? { isActive: validated.isActive } : {}),
+        services: serviceIds
+          ? {
+              set: serviceIds.map((sid) => ({ id: sid })),
+            }
+          : undefined,
+        workingHours: workingHours
+          ? {
+              deleteMany: {},
+              create: workingHours.map((wh) => ({
+                dayOfWeek: wh.dayOfWeek,
+                startTime: wh.startTime,
+                endTime: wh.endTime,
+                isWorking: wh.isWorking,
+              })),
+            }
+          : undefined,
       },
       include: {
         services: true,
@@ -101,8 +146,20 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = authorizeAdmin(request, "OWNER")
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const { id } = await params
+    if (!id) {
+      return NextResponse.json({ error: "شناسه نامعتبر است" }, { status: 400 })
+    }
+    const existing = await prisma.barber.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ error: "آرایشگر یافت نشد" }, { status: 404 })
+    }
     await prisma.barber.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {

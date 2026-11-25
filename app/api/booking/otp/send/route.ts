@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { normalizeIranianPhone, isValidIranianPhone, getSmsProvider } from "@/lib/providers/sms"
 import { generateOtpCode, hashOtpCode } from "@/lib/auth"
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request)
+    const ipRate = checkRateLimit(`otp_ip_${ip}`, 5, 10 * 60 * 1000)
+    if (!ipRate.allowed) {
+      return NextResponse.json(
+        { error: "تعداد درخواست‌های کد تایید از آدرس شما بیش از حد مجاز است. لطفاً ۱۰ دقیقه دیگر تلاش نمایید." },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { phone } = body
 
@@ -17,7 +27,31 @@ export async function POST(request: NextRequest) {
 
     const normalizedPhone = normalizeIranianPhone(phone)
 
-    // Rate limiting: check recent OTP requests in last 2 minutes
+    // Burst rate limiting per phone number: max 3 requests per 15 minutes
+    const phoneBurst = checkRateLimit(`otp_phone_burst_${normalizedPhone}`, 3, 15 * 60 * 1000)
+    if (!phoneBurst.allowed) {
+      return NextResponse.json(
+        { error: "تعداد درخواست‌های کد تایید برای این شماره بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش نمایید." },
+        { status: 429 }
+      )
+    }
+
+    // Daily persistent limit per phone number: max 8 OTPs per 24 hours
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+    const dailyCount = await prisma.otpChallenge.count({
+      where: {
+        phone: normalizedPhone,
+        createdAt: { gte: oneDayAgo },
+      },
+    })
+    if (dailyCount >= 8) {
+      return NextResponse.json(
+        { error: "سقف ارسال روزانه کد تایید برای این شماره به پایان رسیده است." },
+        { status: 429 }
+      )
+    }
+
+    // Rate limiting: check recent OTP requests in last 2 minutes (resend cooldown)
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000)
     const recentChallenge = await prisma.otpChallenge.findFirst({
       where: {

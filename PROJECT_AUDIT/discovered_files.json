@@ -1,0 +1,1803 @@
+{
+  "total": 356,
+  "excludedDirs": [
+    {
+      "path": ".claude",
+      "reason": "Generated/dependency/hidden directory"
+    },
+    {
+      "path": ".git",
+      "reason": "Generated/dependency/hidden directory"
+    },
+    {
+      "path": ".next",
+      "reason": "Generated/dependency/hidden directory"
+    },
+    {
+      "path": "node_modules",
+      "reason": "Generated/dependency/hidden directory"
+    }
+  ],
+  "files": [
+    {
+      "path": ".dockerignore",
+      "size": 498,
+      "ext": ""
+    },
+    {
+      "path": ".env",
+      "size": 255,
+      "ext": ""
+    },
+    {
+      "path": ".env.example",
+      "size": 2798,
+      "ext": ".example"
+    },
+    {
+      "path": ".env.production.example",
+      "size": 2810,
+      "ext": ".example"
+    },
+    {
+      "path": ".gitignore",
+      "size": 538,
+      "ext": ""
+    },
+    {
+      "path": "app/(admin)/admin/AdminDashboardClient.tsx",
+      "size": 15332,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/appointments/AdminAppointmentsClient.tsx",
+      "size": 15537,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/appointments/page.tsx",
+      "size": 24474,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/availability/page.tsx",
+      "size": 19501,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/barbers/AdminBarbersClient.tsx",
+      "size": 21684,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/barbers/page.tsx",
+      "size": 666,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/birthdays/page.tsx",
+      "size": 22640,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/customers/page.tsx",
+      "size": 22173,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/page.tsx",
+      "size": 77678,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/payments/page.tsx",
+      "size": 11540,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/reviews/page.tsx",
+      "size": 15317,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/services/AdminServicesClient.tsx",
+      "size": 14739,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/services/page.tsx",
+      "size": 414,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/settings/AdminSettingsClient.tsx",
+      "size": 12091,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/settings/page.tsx",
+      "size": 434,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/admin/sms/page.tsx",
+      "size": 78273,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(admin)/layout.tsx",
+      "size": 1262,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/about/page.tsx",
+      "size": 6419,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/barbers/page.tsx",
+      "size": 13324,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/book/page.tsx",
+      "size": 110,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/booking/confirmation/[id]/page.tsx",
+      "size": 857,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/booking/page.tsx",
+      "size": 1362,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/booking/status/page.tsx",
+      "size": 37306,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/booking/success/page.tsx",
+      "size": 27418,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/contact/page.tsx",
+      "size": 8282,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/gallery/page.tsx",
+      "size": 23004,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/layout.tsx",
+      "size": 424,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(booking)/services/page.tsx",
+      "size": 8885,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(customer)/auth/page.tsx",
+      "size": 20524,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(customer)/dashboard/appointments/page.tsx",
+      "size": 10870,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(customer)/dashboard/notifications/page.tsx",
+      "size": 9118,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(customer)/dashboard/page.tsx",
+      "size": 12726,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(customer)/dashboard/profile/page.tsx",
+      "size": 21814,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/(customer)/layout.tsx",
+      "size": 6919,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/admin-login/page.tsx",
+      "size": 9456,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/api/admin/appointments/reschedule/route.ts",
+      "size": 7384,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/appointments/route.ts",
+      "size": 9032,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/auth/login/route.ts",
+      "size": 2796,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/auth/logout/route.ts",
+      "size": 537,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/auth/me/route.ts",
+      "size": 349,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/availability/route.ts",
+      "size": 5881,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/birthdays/route.ts",
+      "size": 8036,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/customers/route.ts",
+      "size": 4262,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/dashboard/route.ts",
+      "size": 13836,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/payments/route.ts",
+      "size": 3163,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/reviews/route.ts",
+      "size": 1289,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/reviews/[id]/route.ts",
+      "size": 1698,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/services/route.ts",
+      "size": 4861,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/settings/route.ts",
+      "size": 2259,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/settings/[endpoint]/route.ts",
+      "size": 1716,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/sms/route.ts",
+      "size": 15311,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/admin/stats/route.ts",
+      "size": 4053,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/appointments/route.ts",
+      "size": 3621,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/appointments/[id]/route.ts",
+      "size": 2266,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/auth/customer/login/route.ts",
+      "size": 2342,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/auth/customer/logout/route.ts",
+      "size": 413,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/auth/customer/me/route.ts",
+      "size": 1004,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/auth/customer/register/route.ts",
+      "size": 2720,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/auth/login/route.ts",
+      "size": 1988,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/auth/logout/route.ts",
+      "size": 320,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/barbers/route.ts",
+      "size": 2135,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/barbers/[id]/route.ts",
+      "size": 3355,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/availability/route.ts",
+      "size": 1048,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/calendar/[trackingCode]/route.ts",
+      "size": 1256,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/callback/route.ts",
+      "size": 2129,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/cancel/route.ts",
+      "size": 3199,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/hold/route.ts",
+      "size": 2181,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/otp/send/route.ts",
+      "size": 2298,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/otp/verify/route.ts",
+      "size": 2994,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/pay/route.ts",
+      "size": 3917,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/services/route.ts",
+      "size": 487,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/booking/status/route.ts",
+      "size": 4228,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/customer/appointments/route.ts",
+      "size": 2102,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/customer/appointments/[id]/route.ts",
+      "size": 3408,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/customer/notifications/route.ts",
+      "size": 3076,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/customer/profile/route.ts",
+      "size": 4642,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/health/route.ts",
+      "size": 674,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/reviews/route.ts",
+      "size": 4190,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/services/route.ts",
+      "size": 1547,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/api/services/[id]/route.ts",
+      "size": 2231,
+      "ext": ".ts"
+    },
+    {
+      "path": "app/globals.css",
+      "size": 21704,
+      "ext": ".css"
+    },
+    {
+      "path": "app/layout.tsx",
+      "size": 6062,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/page.tsx",
+      "size": 2292,
+      "ext": ".tsx"
+    },
+    {
+      "path": "app/payment/mock/[authority]/page.tsx",
+      "size": 5070,
+      "ext": ".tsx"
+    },
+    {
+      "path": "artifacts/screenshots/admin_jalali_calendar_1440px.png",
+      "size": 101598,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin_jalali_calendar_375px.png",
+      "size": 42674,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin_payments_1440px.png",
+      "size": 115102,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin_payments_375px.png",
+      "size": 47911,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_appointments_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_appointments_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_appointments_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_appointments_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_appointments_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_availability_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_availability_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_availability_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_availability_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_availability_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_customers_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_customers_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_customers_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_customers_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_customers_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_payments_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_payments_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_payments_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_payments_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_payments_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_reviews_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_reviews_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_reviews_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_reviews_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_reviews_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_services_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_services_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_services_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_services_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_services_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_settings_1024px.png",
+      "size": 50722,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_settings_1440px.png",
+      "size": 55762,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_settings_320px.png",
+      "size": 25257,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_settings_375px.png",
+      "size": 42318,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/admin__admin_settings_768px.png",
+      "size": 52513,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step2_1440px-desktop.png",
+      "size": 150075,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step2_320px-iphone-se.png",
+      "size": 53550,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step2_375px-iphone-x.png",
+      "size": 72946,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step2_390px-iphone-13.png",
+      "size": 79667,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step3_320px-iphone-se.png",
+      "size": 6128,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step3_375px-iphone-x.png",
+      "size": 23198,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_step3_390px-iphone-13.png",
+      "size": 23661,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_success_1440px.png",
+      "size": 179329,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/booking_success_375px.png",
+      "size": 143665,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_1024px-ipad-landscape.png",
+      "size": 1757874,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_1280px-laptop.png",
+      "size": 1821188,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_1440px-desktop.png",
+      "size": 1854851,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_1920px-wide-desktop.png",
+      "size": 1888640,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_320px-iphone-se.png",
+      "size": 1033419,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_360px-compact-android.png",
+      "size": 1086057,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_375px-iphone-x.png",
+      "size": 1097572,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_390px-iphone-13.png",
+      "size": 1159667,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_414px-iphone-plus.png",
+      "size": 1194872,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_430px-iphone-promax.png",
+      "size": 1213587,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/full_768px-ipad-portrait.png",
+      "size": 1525669,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/gallery_lightbox_1440px.png",
+      "size": 121598,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/gallery_lightbox_375px-iphone-x.png",
+      "size": 40465,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/gallery_lightbox_375px.png",
+      "size": 41089,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/gallery_page_375px.png",
+      "size": 2156184,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/homepage_1440px.png",
+      "size": 217167,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/homepage_375px.png",
+      "size": 73864,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_admin_birthdays_375px.png",
+      "size": 42629,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_admin_customers_375px.png",
+      "size": 33940,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_admin_sms_375px.png",
+      "size": 37034,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_header_tracking_375px.png",
+      "size": 44460,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_step4_customer_info_375px.png",
+      "size": 51365,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_step5_phone_confirm_375px.png",
+      "size": 46450,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/master_tariff_modal_375px.png",
+      "size": 83830,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/review_bottomsheet_375px.png",
+      "size": 36208,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/review_modal_375px-iphone-x.png",
+      "size": 51875,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/tracking_1440px.png",
+      "size": 155723,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/tracking_375px.png",
+      "size": 116476,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/01_homepage_desktop_1440.png",
+      "size": 2147166,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/02_homepage_mobile_375.png",
+      "size": 98313,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/03_booking_mobile_375.png",
+      "size": 74750,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/04_tracking_desktop_1440.png",
+      "size": 94926,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/05_tracking_mobile_375.png",
+      "size": 58620,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/06_admin_dashboard_desktop_1440.png",
+      "size": 145910,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/07_admin_dashboard_mobile_375.png",
+      "size": 53823,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/08_admin_sms_desktop_1440.png",
+      "size": 151169,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/typography/09_admin_sms_mobile_375.png",
+      "size": 59138,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_1_hero_natural_before_after.png",
+      "size": 45139,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_2_closed_day_warning.png",
+      "size": 45139,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_3_tracking_form_restored.png",
+      "size": 41549,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_3_tracking_results_view.png",
+      "size": 42782,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_4_admin_reschedule_modal.png",
+      "size": 44387,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_4_admin_today_schedule.png",
+      "size": 40422,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_5_admin_datepicker_mobile_sheet.png",
+      "size": 24550,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_6_viewport_1440px_desktop_l.png",
+      "size": 101408,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_6_viewport_320px_se.png",
+      "size": 42354,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_6_viewport_375px_iphoneX.png",
+      "size": 45139,
+      "ext": ".png"
+    },
+    {
+      "path": "artifacts/screenshots/ux_6_viewport_768px_tablet.png",
+      "size": 97030,
+      "ext": ".png"
+    },
+    {
+      "path": "assets/design-tokens.json",
+      "size": 14747,
+      "ext": ".json"
+    },
+    {
+      "path": "components/admin/AdminHeader.tsx",
+      "size": 3843,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/admin/AdminNavContext.tsx",
+      "size": 1176,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/admin/AdminSidebar.tsx",
+      "size": 10883,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/admin/RescheduleAppointmentModal.tsx",
+      "size": 14016,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/BarberCard.tsx",
+      "size": 6081,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/BookingWizard.tsx",
+      "size": 37472,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/CustomerForm.tsx",
+      "size": 17102,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/DatePicker.tsx",
+      "size": 7904,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/Footer.tsx",
+      "size": 52,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/Header.tsx",
+      "size": 52,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/JalaliBirthDatePicker.tsx",
+      "size": 5871,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/ServiceCard.tsx",
+      "size": 5404,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/TimeSlotPicker.test.tsx",
+      "size": 185,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/booking/TimeSlotPicker.tsx.bak",
+      "size": 6432,
+      "ext": ".bak"
+    },
+    {
+      "path": "components/booking/TimeSlotPickerMinimal.tsx",
+      "size": 8148,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/AboutSection.tsx",
+      "size": 5838,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/BeforeAfterSlider.tsx",
+      "size": 6623,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/BookingStudio.tsx",
+      "size": 66847,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/FaqSection.tsx",
+      "size": 5473,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/Footer.tsx",
+      "size": 52,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/GallerySection.tsx",
+      "size": 12462,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/Header.tsx",
+      "size": 52,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/HeroSection.tsx",
+      "size": 7386,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/HomePageClient.tsx",
+      "size": 3307,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/LocationContactSection.tsx",
+      "size": 9376,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/MobileFloatingBar.tsx",
+      "size": 2142,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/ReviewsSection.tsx",
+      "size": 6075,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/ReviewSystemSection.tsx",
+      "size": 22493,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/home/ServicesSection.tsx",
+      "size": 9624,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/index.ts",
+      "size": 774,
+      "ext": ".ts"
+    },
+    {
+      "path": "components/shared/Footer.tsx",
+      "size": 6849,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/shared/Header.tsx",
+      "size": 10561,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/alert.tsx",
+      "size": 1792,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/avatar.tsx",
+      "size": 1399,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/badge.tsx",
+      "size": 1869,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/button.tsx",
+      "size": 3260,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/card.tsx",
+      "size": 2843,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/checkbox.tsx",
+      "size": 1061,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/dialog.tsx",
+      "size": 3894,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/dropdown-menu.tsx",
+      "size": 7217,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/focus-trap.tsx",
+      "size": 3881,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/input.tsx",
+      "size": 2496,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/JalaliDatePicker.tsx",
+      "size": 16071,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/label.tsx",
+      "size": 708,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/live-region.tsx",
+      "size": 1885,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/scroll-area.tsx",
+      "size": 1657,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/select.tsx",
+      "size": 5675,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/separator.tsx",
+      "size": 728,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/skip-link.tsx",
+      "size": 1155,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/switch.tsx",
+      "size": 1151,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/table.tsx",
+      "size": 2777,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/tabs.tsx",
+      "size": 1872,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/textarea.tsx",
+      "size": 1540,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/toast.tsx",
+      "size": 4742,
+      "ext": ".tsx"
+    },
+    {
+      "path": "components/ui/tooltip.tsx",
+      "size": 1155,
+      "ext": ".tsx"
+    },
+    {
+      "path": "compose.production.yml",
+      "size": 2607,
+      "ext": ".yml"
+    },
+    {
+      "path": "deploy/nginx/koroushbarber.conf",
+      "size": 7040,
+      "ext": ".conf"
+    },
+    {
+      "path": "design-system/barberbook/MASTER.md",
+      "size": 6463,
+      "ext": ".md"
+    },
+    {
+      "path": "design-system/barberbook/tokens.css",
+      "size": 798,
+      "ext": ".css"
+    },
+    {
+      "path": "design-system/barberbook/tokens.json",
+      "size": 3472,
+      "ext": ".json"
+    },
+    {
+      "path": "design-system/kourosh-barber/MASTER.md",
+      "size": 6467,
+      "ext": ".md"
+    },
+    {
+      "path": "design-system/kourosh-barber/tokens.css",
+      "size": 798,
+      "ext": ".css"
+    },
+    {
+      "path": "design-system/kourosh-barber/tokens.json",
+      "size": 3476,
+      "ext": ".json"
+    },
+    {
+      "path": "docker-compose.yml",
+      "size": 2236,
+      "ext": ".yml"
+    },
+    {
+      "path": "docker-entrypoint.sh",
+      "size": 790,
+      "ext": ".sh"
+    },
+    {
+      "path": "Dockerfile",
+      "size": 2749,
+      "ext": ""
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "size": 8639,
+      "ext": ".md"
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "size": 8581,
+      "ext": ".md"
+    },
+    {
+      "path": "docs/DESIGN_SYSTEM.md",
+      "size": 10611,
+      "ext": ".md"
+    },
+    {
+      "path": "docs/DESIGN_SYSTEM_REVIEW.md",
+      "size": 11174,
+      "ext": ".md"
+    },
+    {
+      "path": "docs/PRODUCT_PLAN.md",
+      "size": 6848,
+      "ext": ".md"
+    },
+    {
+      "path": "docs/TEST_PLAN.md",
+      "size": 3931,
+      "ext": ".md"
+    },
+    {
+      "path": "docs/UX_SYSTEM.md",
+      "size": 5330,
+      "ext": ".md"
+    },
+    {
+      "path": "hooks/use-toast.tsx",
+      "size": 2362,
+      "ext": ".tsx"
+    },
+    {
+      "path": "hooks/useDebounce.ts",
+      "size": 377,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/admin-auth.ts",
+      "size": 1400,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/auth.ts",
+      "size": 3068,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/booking-engine.ts",
+      "size": 20742,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/db.ts",
+      "size": 400,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/edge-auth.ts",
+      "size": 2031,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/ics.ts",
+      "size": 1904,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/jalali.ts",
+      "size": 14825,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/providers/payment.ts",
+      "size": 6438,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/providers/sms.ts",
+      "size": 11420,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/rate-limit.ts",
+      "size": 1363,
+      "ext": ".ts"
+    },
+    {
+      "path": "lib/utils.ts",
+      "size": 2599,
+      "ext": ".ts"
+    },
+    {
+      "path": "middleware.ts",
+      "size": 1259,
+      "ext": ".ts"
+    },
+    {
+      "path": "next-env.d.ts",
+      "size": 233,
+      "ext": ".ts"
+    },
+    {
+      "path": "next.config.js",
+      "size": 256,
+      "ext": ".js"
+    },
+    {
+      "path": "package-lock.json",
+      "size": 295130,
+      "ext": ".json"
+    },
+    {
+      "path": "package.json",
+      "size": 2448,
+      "ext": ".json"
+    },
+    {
+      "path": "postcss.config.js",
+      "size": 81,
+      "ext": ".js"
+    },
+    {
+      "path": "prisma/dev.db",
+      "size": 294912,
+      "ext": ".db"
+    },
+    {
+      "path": "prisma/migrations/20261124000000_init/migration.sql",
+      "size": 12069,
+      "ext": ".sql"
+    },
+    {
+      "path": "prisma/migrations/migration_lock.toml",
+      "size": 64,
+      "ext": ".toml"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "size": 9140,
+      "ext": ".prisma"
+    },
+    {
+      "path": "prisma/seed.ts",
+      "size": 9172,
+      "ext": ".ts"
+    },
+    {
+      "path": "public/favicon.svg",
+      "size": 445,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-Black.woff2",
+      "size": 79552,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-Bold.woff2",
+      "size": 80524,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-ExtraBold.woff2",
+      "size": 80672,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-Medium.woff2",
+      "size": 79556,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-Regular.woff2",
+      "size": 78408,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-SemiBold.woff2",
+      "size": 80052,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/Estedad-Variable.woff2",
+      "size": 128304,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/estedad/OFL.txt",
+      "size": 4388,
+      "ext": ".txt"
+    },
+    {
+      "path": "public/fonts/vazirmatn/OFL.txt",
+      "size": 4391,
+      "ext": ".txt"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-Black.woff2",
+      "size": 50568,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-Bold.woff2",
+      "size": 51020,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-ExtraBold.woff2",
+      "size": 51120,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-Medium.woff2",
+      "size": 51128,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-Regular.woff2",
+      "size": 50684,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-SemiBold.woff2",
+      "size": 51032,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/fonts/vazirmatn/Vazirmatn-Variable.woff2",
+      "size": 111152,
+      "ext": ".woff2"
+    },
+    {
+      "path": "public/images/barber-kourosh.svg",
+      "size": 2495,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/gallery-1.svg",
+      "size": 1346,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/gallery-2.svg",
+      "size": 1606,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/gallery-3.svg",
+      "size": 1475,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/gallery-4.svg",
+      "size": 7515,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/gallery-5.svg",
+      "size": 1863,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/gallery-6.svg",
+      "size": 4494,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/haircut-after.jpg",
+      "size": 670392,
+      "ext": ".jpg"
+    },
+    {
+      "path": "public/images/haircut-after.svg",
+      "size": 3760,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/haircut-before.jpg",
+      "size": 728809,
+      "ext": ".jpg"
+    },
+    {
+      "path": "public/images/haircut-before.svg",
+      "size": 2377,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/images/salon-hero.svg",
+      "size": 2552,
+      "ext": ".svg"
+    },
+    {
+      "path": "public/site.webmanifest",
+      "size": 411,
+      "ext": ".webmanifest"
+    },
+    {
+      "path": "README.md",
+      "size": 6435,
+      "ext": ".md"
+    },
+    {
+      "path": "screenshots/admin_appointment_details_375px.png",
+      "size": 44432,
+      "ext": ".png"
+    },
+    {
+      "path": "screenshots/admin_manual_booking_375px.png",
+      "size": 43082,
+      "ext": ".png"
+    },
+    {
+      "path": "screenshots/admin_timeline_1440px.png",
+      "size": 148014,
+      "ext": ".png"
+    },
+    {
+      "path": "screenshots/admin_timeline_375px.png",
+      "size": 42068,
+      "ext": ".png"
+    },
+    {
+      "path": "screenshots/admin_weekly_strip_1440px.png",
+      "size": 148026,
+      "ext": ".png"
+    },
+    {
+      "path": "screenshots/admin_weekly_strip_375px.png",
+      "size": 35001,
+      "ext": ".png"
+    },
+    {
+      "path": "scripts/backup-db.sh",
+      "size": 2978,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/backup-postgres.sh",
+      "size": 2641,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/deploy-ubuntu.sh",
+      "size": 24318,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/download-fonts.mjs",
+      "size": 3240,
+      "ext": ".mjs"
+    },
+    {
+      "path": "scripts/health-check.sh",
+      "size": 7388,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/prepare-db.js",
+      "size": 1733,
+      "ext": ".js"
+    },
+    {
+      "path": "scripts/reset-dev-db.ts",
+      "size": 16598,
+      "ext": ".ts"
+    },
+    {
+      "path": "scripts/restore-db.sh",
+      "size": 2483,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/restore-postgres.sh",
+      "size": 3307,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/seed-production.js",
+      "size": 10067,
+      "ext": ".js"
+    },
+    {
+      "path": "scripts/update-production.sh",
+      "size": 3699,
+      "ext": ".sh"
+    },
+    {
+      "path": "scripts/validate-tokens.cjs",
+      "size": 6501,
+      "ext": ".cjs"
+    },
+    {
+      "path": "scripts/visual-typography-verify.mjs",
+      "size": 5451,
+      "ext": ".mjs"
+    },
+    {
+      "path": "tailwind.config.ts",
+      "size": 7377,
+      "ext": ".ts"
+    },
+    {
+      "path": "test/acceptance.test.ts",
+      "size": 23076,
+      "ext": ".ts"
+    },
+    {
+      "path": "test/admin_login_browser.js",
+      "size": 3154,
+      "ext": ".js"
+    },
+    {
+      "path": "test/admin_responsive.js",
+      "size": 4533,
+      "ext": ".js"
+    },
+    {
+      "path": "test/admin_ux_refinement_e2e.js",
+      "size": 14124,
+      "ext": ".js"
+    },
+    {
+      "path": "test/admin_weekly_scheduler_e2e.js",
+      "size": 11434,
+      "ext": ".js"
+    },
+    {
+      "path": "test/auth_test.js",
+      "size": 4118,
+      "ext": ".js"
+    },
+    {
+      "path": "test/database_isolation.test.ts",
+      "size": 7297,
+      "ext": ".ts"
+    },
+    {
+      "path": "test/e2e_responsive.js",
+      "size": 9463,
+      "ext": ".js"
+    },
+    {
+      "path": "test/full_site_audit_e2e.js",
+      "size": 9879,
+      "ext": ".js"
+    },
+    {
+      "path": "test/master_crm_booking_e2e.js",
+      "size": 11715,
+      "ext": ".js"
+    },
+    {
+      "path": "test/master_ux_reschedule_e2e.js",
+      "size": 14655,
+      "ext": ".js"
+    },
+    {
+      "path": "test/test_scroll.js",
+      "size": 2234,
+      "ext": ".js"
+    },
+    {
+      "path": "test/ui_ux_refinement_e2e.js",
+      "size": 11800,
+      "ext": ".js"
+    },
+    {
+      "path": "tsconfig.json",
+      "size": 651,
+      "ext": ".json"
+    },
+    {
+      "path": "tsconfig.tsbuildinfo",
+      "size": 188355,
+      "ext": ".tsbuildinfo"
+    },
+    {
+      "path": "types/index.ts",
+      "size": 2357,
+      "ext": ".ts"
+    },
+    {
+      "path": "UBUNTU_PRODUCTION_DEPLOYMENT_FA.md",
+      "size": 29490,
+      "ext": ".md"
+    }
+  ]
+}

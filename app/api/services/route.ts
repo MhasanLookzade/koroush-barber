@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
+import { authorizeAdmin } from "@/lib/admin-auth"
 
 const serviceSchema = z.object({
-  name: z.string().min(1, "نام خدمت الزامی است"),
-  description: z.string().optional(),
-  price: z.number().positive("قیمت باید مثبت باشد"),
-  duration: z.number().positive("مدت زمان باید مثبت باشد"),
-  category: z.string().min(1, "دسته‌بندی الزامی است"),
+  name: z.string().min(1, "نام خدمت الزامی است").max(100),
+  description: z.string().max(500).optional(),
+  price: z.number().int().positive("قیمت باید مثبت باشد"),
+  duration: z.number().int().positive("مدت زمان باید مثبت باشد"),
+  category: z.string().min(1, "دسته‌بندی الزامی است").max(60),
   isActive: z.boolean().default(true),
 })
 
@@ -15,7 +16,7 @@ export async function GET() {
   try {
     const services = await prisma.service.findMany({
       where: { isActive: true },
-      orderBy: { category: 'asc' },
+      orderBy: { category: "asc" },
     })
     return NextResponse.json(services)
   } catch (error) {
@@ -25,13 +26,23 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = authorizeAdmin(request, "OWNER")
+  if ("errorResponse" in auth) {
+    return auth.errorResponse
+  }
+
   try {
     const body = await request.json()
     const validated = serviceSchema.parse(body)
 
     const service = await prisma.service.create({
       data: {
-        ...validated,
+        name: validated.name,
+        description: validated.description || null,
+        price: validated.price,
+        duration: validated.duration,
+        category: validated.category,
+        isActive: validated.isActive,
         depositPrice: Math.round(validated.price * 0.2),
       },
     })

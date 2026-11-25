@@ -27,6 +27,7 @@ export type NotificationStatus =
 
 export const DEFAULT_MAX_ATTEMPTS = 3
 export const DEFAULT_BASE_BACKOFF_MS = 30_000
+export const DEFAULT_LEASE_DURATION_MS = 60_000
 
 const activeDeliveries = new Set<Promise<unknown>>()
 
@@ -53,9 +54,15 @@ export function formatJobDiagnostic(params: {
   category: FailureCategory
   durationMs: number
   error?: string
+  previousError?: string | null
 }): string {
   const cleanErr = sanitizeTelemetryText(params.error || "Delivery error")
-  return `[att:${params.attempt}/${params.maxAttempts}|corr:${params.correlationId}|cat:${params.category}|dur:${params.durationMs}ms] ${cleanErr}`
+  const head = `[att:${params.attempt}/${params.maxAttempts}|corr:${params.correlationId}|cat:${params.category}|dur:${params.durationMs}ms] ${cleanErr}`
+  if (params.previousError && !params.previousError.includes(cleanErr)) {
+    const prevSummary = sanitizeTelemetryText(params.previousError).slice(0, 140)
+    return `${head} || prev: ${prevSummary}`.slice(0, 500)
+  }
+  return head.slice(0, 500)
 }
 
 /**
@@ -99,6 +106,8 @@ export async function enqueueNotificationJob(
       message: params.message,
       status: "QUEUED",
       provider: provider.name,
+      lockedAt: null,
+      leaseExpiresAt: null,
       scheduledAt: params.scheduledAt ?? new Date(),
       sentAt: null,
       error: null,
@@ -109,59 +118,79 @@ export async function enqueueNotificationJob(
 }
 
 /**
- * Atomically claim and deliver a single NotificationJob strictly outside any DB transaction.
- * Enforces duplicate prevention via optimistic status transition (QUEUED/RETRY_PENDING -> SENDING).
+ * Atomically acquire a time-bounded worker lease and deliver a single NotificationJob outside any DB transaction.
+ * Clears lease columns on every terminal or retry transition.
  */
 export async function processNotificationJob(
   jobId: string,
   options: {
     maxAttempts?: number
     baseBackoffMs?: number
+    leaseDurationMs?: number
     skipScheduleGuard?: boolean
     allowManualRetry?: boolean
+    allowUnknownRetry?: boolean
     providerOverride?: SmsProvider
     dispatcher?: (sms: SmsProvider, job: NotificationJob) => Promise<SmsSendResult>
   } = {}
 ): Promise<{
   claimed: boolean
+  reason?: "ACTIVE_LEASE" | "NOT_FOUND" | "NOT_ELIGIBLE"
   finalStatus: NotificationStatus | "SKIPPED"
   job?: NotificationJob
   result?: SmsSendResult
 }> {
   const work = (async () => {
-    const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
+    const baseMaxAttempts = options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS
     const baseBackoffMs = options.baseBackoffMs ?? DEFAULT_BASE_BACKOFF_MS
+    const leaseDurationMs = Math.max(500, options.leaseDurationMs ?? DEFAULT_LEASE_DURATION_MS)
     const now = new Date()
+    const leaseExpiresAt = new Date(now.getTime() + leaseDurationMs)
 
-    const allowedStatuses = options.allowManualRetry
+    const allowedStatuses = options.allowUnknownRetry
       ? ["QUEUED", "PENDING", "RETRY_PENDING", "FAILED", "UNKNOWN"]
-      : ["QUEUED", "PENDING", "RETRY_PENDING"]
+      : options.allowManualRetry
+        ? ["QUEUED", "PENDING", "RETRY_PENDING", "FAILED"]
+        : ["QUEUED", "PENDING", "RETRY_PENDING"]
 
+    // Atomic lease acquisition: never overloads scheduledAt
     const claim = await prisma.notificationJob.updateMany({
       where: {
         id: jobId,
         status: { in: allowedStatuses },
         ...(options.skipScheduleGuard ? {} : { scheduledAt: { lte: now } }),
       },
-      data: { status: "SENDING" },
+      data: {
+        status: "SENDING",
+        lockedAt: now,
+        leaseExpiresAt,
+      },
     })
 
     if (claim.count === 0) {
       const existing = await prisma.notificationJob.findUnique({ where: { id: jobId } })
+      if (!existing) {
+        return { claimed: false, reason: "NOT_FOUND" as const, finalStatus: "SKIPPED" as const }
+      }
       return {
         claimed: false,
-        finalStatus: (existing?.status as NotificationStatus) || "SKIPPED",
-        job: existing ?? undefined,
+        reason: existing.status === "SENDING" ? ("ACTIVE_LEASE" as const) : ("NOT_ELIGIBLE" as const),
+        finalStatus: (existing.status as NotificationStatus) || "SKIPPED",
+        job: existing,
       }
     }
 
     const job = await prisma.notificationJob.findUnique({ where: { id: jobId } })
     if (!job) {
-      return { claimed: false, finalStatus: "SKIPPED" as const }
+      return { claimed: false, reason: "NOT_FOUND" as const, finalStatus: "SKIPPED" as const }
     }
 
     const sms = options.providerOverride ?? getSmsProvider()
-    const attempt = (options.allowManualRetry ? 0 : extractAttemptCount(job.error)) + 1
+    const previousError = job.error
+    const attempt = extractAttemptCount(previousError) + 1
+    const effectiveMaxAttempts = options.allowManualRetry
+      ? Math.max(baseMaxAttempts, attempt + (baseMaxAttempts - 1))
+      : baseMaxAttempts
     const correlationId = generateCorrelationId("notif")
 
     let sendRes: SmsSendResult
@@ -192,15 +221,39 @@ export async function processNotificationJob(
     const corr = sendRes.correlationId ?? correlationId
 
     if (sendRes.success) {
-      const updated = await prisma.notificationJob.update({
-        where: { id: job.id },
+      const fencedSuccess = await prisma.notificationJob.updateMany({
+        where: { id: job.id, status: "SENDING", lockedAt: now },
         data: {
           status: "SENT",
           provider: sms.name,
           sentAt: new Date(),
+          lockedAt: null,
+          leaseExpiresAt: null,
           error: null,
         },
       })
+      if (fencedSuccess.count === 0) {
+        return {
+          claimed: false,
+          reason: "ACTIVE_LEASE" as const,
+          finalStatus: "SKIPPED" as const,
+          result: sendRes,
+        }
+      }
+      const updated = (await prisma.notificationJob.findUnique({ where: { id: job.id } })) ?? job
+
+      // Preserve prior failure/attempt trail in AuditLog when recovering from prior failure
+      if (previousError) {
+        await prisma.auditLog.create({
+          data: {
+            action: "NOTIFICATION_RECOVERED",
+            entity: "NotificationJob",
+            entityId: job.id,
+            oldData: JSON.stringify({ error: sanitizeTelemetryText(previousError), attempt: attempt - 1 }),
+            newData: JSON.stringify({ status: "SENT", attempt, correlationId: corr }),
+          },
+        }).catch(() => {})
+      }
 
       logProviderTelemetry({
         provider: sms.name,
@@ -221,7 +274,7 @@ export async function processNotificationJob(
       }
     }
 
-    const canRetry = Boolean(sendRes.isRetryable) && attempt < maxAttempts
+    const canRetry = Boolean(sendRes.isRetryable) && attempt < effectiveMaxAttempts
     const isUncertainTerminal =
       !canRetry && (Boolean(sendRes.isUncertain) || category === "TIMEOUT" || category === "INVALID_JSON")
 
@@ -237,23 +290,35 @@ export async function processNotificationJob(
 
     const diagnostic = formatJobDiagnostic({
       attempt,
-      maxAttempts,
+      maxAttempts: effectiveMaxAttempts,
       correlationId: corr,
       category,
       durationMs,
       error: sendRes.error || "خطا در ارسال پیامک",
+      previousError,
     })
 
-    const updated = await prisma.notificationJob.update({
-      where: { id: job.id },
+    const fencedFail = await prisma.notificationJob.updateMany({
+      where: { id: job.id, status: "SENDING", lockedAt: now },
       data: {
         status: finalStatus,
         provider: sms.name,
         scheduledAt: nextScheduledAt,
         sentAt: null,
+        lockedAt: null,
+        leaseExpiresAt: null,
         error: diagnostic,
       },
     })
+    if (fencedFail.count === 0) {
+      return {
+        claimed: false,
+        reason: "ACTIVE_LEASE" as const,
+        finalStatus: "SKIPPED" as const,
+        result: sendRes,
+      }
+    }
+    const updated = (await prisma.notificationJob.findUnique({ where: { id: job.id } })) ?? job
 
     logProviderTelemetry({
       provider: sms.name,
@@ -284,37 +349,79 @@ export async function processNotificationJob(
 }
 
 /**
- * Recover SENDING jobs stranded by a worker crash or forced shutdown.
+ * Recover ONLY SENDING jobs whose active worker lease has actually expired.
+ * Concurrent workers holding a valid lease (leaseExpiresAt > now) are never interrupted.
  */
-export async function recoverStuckSendingJobs(staleAfterMs = 60_000): Promise<number> {
-  const cutoff = new Date(Date.now() - staleAfterMs)
-  const stuck = await prisma.notificationJob.findMany({
+export async function recoverStuckSendingJobs(
+  fallbackStaleAfterMs = DEFAULT_LEASE_DURATION_MS
+): Promise<number> {
+  const now = new Date()
+  const fallbackCutoff = new Date(now.getTime() - fallbackStaleAfterMs)
+
+  const expiredLeases = await prisma.notificationJob.findMany({
     where: {
       status: "SENDING",
-      scheduledAt: { lte: cutoff },
+      OR: [
+        { leaseExpiresAt: { lte: now } },
+        { leaseExpiresAt: null, lockedAt: { lte: fallbackCutoff } },
+        { leaseExpiresAt: null, lockedAt: null, scheduledAt: { lte: fallbackCutoff } },
+      ],
     },
   })
 
   let recoveredCount = 0
-  for (const job of stuck) {
+  for (const job of expiredLeases) {
     const attempt = extractAttemptCount(job.error) + 1
     const nextState: NotificationStatus = attempt >= DEFAULT_MAX_ATTEMPTS ? "UNKNOWN" : "RETRY_PENDING"
     const res = await prisma.notificationJob.updateMany({
-      where: { id: job.id, status: "SENDING" },
+      where: {
+        id: job.id,
+        status: "SENDING",
+        OR: [
+          { leaseExpiresAt: { lte: now } },
+          { leaseExpiresAt: null, lockedAt: { lte: fallbackCutoff } },
+          { leaseExpiresAt: null, lockedAt: null, scheduledAt: { lte: fallbackCutoff } },
+        ],
+      },
       data: {
         status: nextState,
-        scheduledAt: new Date(),
+        lockedAt: null,
+        leaseExpiresAt: null,
+        scheduledAt: now,
         error: formatJobDiagnostic({
           attempt,
           maxAttempts: DEFAULT_MAX_ATTEMPTS,
           correlationId: generateCorrelationId("rec"),
           category: "NETWORK_ERROR",
           durationMs: 0,
-          error: "Recovered interrupted SENDING job after restart",
+          error: "Recovered expired worker SENDING lease after crash/timeout",
+          previousError: job.error,
         }),
       },
     })
-    if (res.count > 0) recoveredCount++
+    if (res.count > 0) {
+      recoveredCount++
+      try {
+        await prisma.auditLog.create({
+          data: {
+            action: "NOTIFICATION_RECOVERED",
+            entity: "NotificationJob",
+            entityId: job.id,
+            oldData: JSON.stringify({
+              status: job.status,
+              lockedAt: job.lockedAt,
+              leaseExpiresAt: job.leaseExpiresAt,
+            }),
+            newData: JSON.stringify({
+              status: nextState,
+              attempt,
+            }),
+          },
+        })
+      } catch {
+        // Non-fatal if audit log write fails during recovery
+      }
+    }
   }
 
   return recoveredCount
@@ -327,6 +434,7 @@ export async function processDueNotificationJobs(options: {
   limit?: number
   maxAttempts?: number
   baseBackoffMs?: number
+  leaseDurationMs?: number
   providerOverride?: SmsProvider
 } = {}): Promise<{
   recovered: number
@@ -336,7 +444,7 @@ export async function processDueNotificationJobs(options: {
   failed: number
   unknown: number
 }> {
-  const recovered = await recoverStuckSendingJobs()
+  const recovered = await recoverStuckSendingJobs(options.leaseDurationMs)
   const dueJobs = await prisma.notificationJob.findMany({
     where: {
       status: { in: ["QUEUED", "PENDING", "RETRY_PENDING"] },
@@ -356,6 +464,7 @@ export async function processDueNotificationJobs(options: {
     const outcome = await processNotificationJob(job.id, {
       maxAttempts: options.maxAttempts,
       baseBackoffMs: options.baseBackoffMs,
+      leaseDurationMs: options.leaseDurationMs,
       skipScheduleGuard: true,
       providerOverride: options.providerOverride,
     })
@@ -390,6 +499,7 @@ function getTodayTehranJalaliMonthDay(now = new Date()): string {
  */
 export async function runScheduledNotificationCycle(options: {
   now?: Date
+  leaseDurationMs?: number
   providerOverride?: SmsProvider
 } = {}): Promise<{
   remindersEnqueued: number
@@ -496,7 +606,10 @@ export async function runScheduledNotificationCycle(options: {
     }
   }
 
-  const outbox = await processDueNotificationJobs({ providerOverride: options.providerOverride })
+  const outbox = await processDueNotificationJobs({
+    leaseDurationMs: options.leaseDurationMs,
+    providerOverride: options.providerOverride,
+  })
   return { remindersEnqueued, birthdaysEnqueued, outbox }
 }
 

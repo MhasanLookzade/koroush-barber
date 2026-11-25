@@ -257,19 +257,22 @@ model AuditLog {
 }
 
 model NotificationJob {
-  id            String    @id @default(cuid())
-  phone         String
-  recipientName String?
-  type          String    // "OTP", "CONFIRMATION", "REMINDER", "BIRTHDAY", "CANCEL", "CUSTOM", "RECONCILIATION_ALERT"
-  message       String
-  status        String    @default("PENDING") // PENDING, SENT, FAILED
-  error         String?
-  provider      String    @default("MOCK") // MOCK, KAVENEGAR
-  scheduledAt   DateTime  @default(now())
-  sentAt        DateTime?
-  createdAt     DateTime  @default(now())
+  id             String    @id @default(cuid())
+  phone          String
+  recipientName  String?
+  type           String    // "OTP", "CONFIRMATION", "REMINDER", "BIRTHDAY", "CANCEL", "CUSTOM", "RECONCILIATION_ALERT"
+  message        String
+  status         String    @default("PENDING") // PENDING, QUEUED, SENDING, RETRY_PENDING, SENT, FAILED, UNKNOWN
+  error          String?
+  provider       String    @default("MOCK") // MOCK, KAVENEGAR
+  lockedAt       DateTime?
+  leaseExpiresAt DateTime?
+  scheduledAt    DateTime  @default(now())
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([status, scheduledAt])
+  @@index([status, leaseExpiresAt])
   @@index([type])
   @@index([phone])
 }

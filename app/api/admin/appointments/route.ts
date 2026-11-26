@@ -193,8 +193,28 @@ export async function POST(request: NextRequest) {
         let customer = await tx.customer.findUnique({ where: { phone: normalizedPhone } })
         if (!customer) {
           customer = await tx.customer.create({
-            data: { phone: normalizedPhone, name: customerName, email: customerEmail || null },
+            data: { phone: normalizedPhone, name: customerName.trim(), email: customerEmail || null },
           })
+        } else {
+          const isPlaceholder =
+            !customer.name ||
+            customer.name.trim() === "" ||
+            customer.name.includes("مشتری گرامی") ||
+            customer.name.includes("کاربر جدید")
+
+          const updateData: Record<string, unknown> = {}
+          if (isPlaceholder && customerName?.trim()) {
+            updateData.name = customerName.trim()
+          }
+          if (!customer.email && customerEmail) {
+            updateData.email = customerEmail
+          }
+          if (Object.keys(updateData).length > 0) {
+            customer = await tx.customer.update({
+              where: { id: customer.id },
+              data: updateData,
+            })
+          }
         }
 
         const trackingCode = generateTrackingCode()
@@ -204,9 +224,10 @@ export async function POST(request: NextRequest) {
             barberId: targetBarberId,
             serviceId: service.id,
             customerId: customer.id,
-            customerName,
+            customerName: customerName.trim(),
             customerPhone: normalizedPhone,
             customerEmail: customerEmail || null,
+            customerBirthDate: customer.birthDate || null,
             date: slotUtc,
             endDate: slotEndUtc,
             status: "CONFIRMED", // Admin manual booking is directly confirmed

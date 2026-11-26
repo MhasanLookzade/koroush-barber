@@ -73,10 +73,18 @@ export async function POST(request: NextRequest) {
     })
 
     if (!customer) {
+      // Find latest appointment name if exists for this phone
+      const latestAppt = await prisma.appointment.findFirst({
+        where: { customerPhone: normalizedPhone },
+        orderBy: { createdAt: "desc" },
+        select: { customerName: true, customerBirthDate: true },
+      })
+
       customer = await prisma.customer.create({
         data: {
           phone: normalizedPhone,
-          name: "مشتری گرامی",
+          name: latestAppt?.customerName || "کاربر جدید",
+          birthDate: latestAppt?.customerBirthDate || null,
           isVerified: true,
         },
       })

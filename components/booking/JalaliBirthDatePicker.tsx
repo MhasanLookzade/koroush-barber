@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, Check, X, ChevronDown } from "lucide-react"
+import { Calendar, X, ChevronDown } from "lucide-react"
 import { toPersianDigits } from "@/lib/jalali"
 
 interface JalaliBirthDatePickerProps {
-  value?: string // e.g. "1370/05/20"
+  value?: string | null // e.g. "1370/05/20"
   onChange: (value: string | null) => void
   label?: string
+  hint?: string
 }
 
 const PERSIAN_MONTHS = [
@@ -29,14 +30,15 @@ export function JalaliBirthDatePicker({
   value,
   onChange,
   label = "تاریخ تولد (اختیاری)",
+  hint = "(برای دریافت تخفیف روز تولد)",
 }: JalaliBirthDatePickerProps) {
   const [year, setYear] = useState<string>("")
   const [month, setMonth] = useState<string>("")
   const [day, setDay] = useState<string>("")
 
-  // Generate years from 1320 to 1395 (realistic range: 10 to 85 years old)
+  // Generate years from 1320 to 1400 (range: 5 to 85 years old)
   const currentJalaliYear = 1405
-  const years = Array.from({ length: 80 }, (_, i) => String(currentJalaliYear - 10 - i))
+  const years = Array.from({ length: 80 }, (_, i) => String(currentJalaliYear - 5 - i))
 
   // Days dynamically based on month: 1-6: 31 days, 7-11: 30 days, 12: 29 days
   const getDaysCount = (m: string) => {
@@ -53,7 +55,7 @@ export function JalaliBirthDatePicker({
     return d < 10 ? `0${d}` : String(d)
   })
 
-  // Initialize from value if present
+  // Sync inbound value
   useEffect(() => {
     if (value && value.includes("/")) {
       const parts = value.split("/")
@@ -61,18 +63,46 @@ export function JalaliBirthDatePicker({
         setYear(parts[0])
         setMonth(parts[1])
         setDay(parts[2])
+        return
       }
     }
+    setYear("")
+    setMonth("")
+    setDay("")
   }, [value])
 
-  // Propagate change
-  useEffect(() => {
-    if (year && month && day) {
-      onChange(`${year}/${month}/${day}`)
+  const handleYearChange = (newYear: string) => {
+    setYear(newYear)
+    if (newYear && month && day) {
+      onChange(`${newYear}/${month}/${day}`)
     } else {
       onChange(null)
     }
-  }, [year, month, day, onChange])
+  }
+
+  const handleMonthChange = (newMonth: string) => {
+    setMonth(newMonth)
+    let currentDay = day
+    const maxDays = getDaysCount(newMonth)
+    if (currentDay && parseInt(currentDay, 10) > maxDays) {
+      currentDay = String(maxDays)
+      setDay(currentDay)
+    }
+    if (year && newMonth && currentDay) {
+      onChange(`${year}/${newMonth}/${currentDay}`)
+    } else {
+      onChange(null)
+    }
+  }
+
+  const handleDayChange = (newDay: string) => {
+    setDay(newDay)
+    if (year && month && newDay) {
+      onChange(`${year}/${month}/${newDay}`)
+    } else {
+      onChange(null)
+    }
+  }
 
   const handleClear = () => {
     setYear("")
@@ -87,7 +117,7 @@ export function JalaliBirthDatePicker({
         <label className="text-xs font-semibold text-[#C5BDB2] flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-[#C8A96B]" />
           <span>{label}</span>
-          <span className="text-[10px] text-[#8C8477] font-normal">(برای دریافت تخفیف روز تولد)</span>
+          {hint && <span className="text-[10px] text-[#8C8477] font-normal">{hint}</span>}
         </label>
         {(year || month || day) && (
           <button
@@ -106,7 +136,7 @@ export function JalaliBirthDatePicker({
         <div className="relative">
           <select
             value={year}
-            onChange={(e) => setYear(e.target.value)}
+            onChange={(e) => handleYearChange(e.target.value)}
             className="w-full pr-2.5 pl-6 py-2.5 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer min-h-[44px]"
             aria-label="سال تولد"
           >
@@ -126,7 +156,7 @@ export function JalaliBirthDatePicker({
         <div className="relative">
           <select
             value={month}
-            onChange={(e) => setMonth(e.target.value)}
+            onChange={(e) => handleMonthChange(e.target.value)}
             className="w-full pr-2.5 pl-6 py-2.5 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer min-h-[44px]"
             aria-label="ماه تولد"
           >
@@ -146,7 +176,7 @@ export function JalaliBirthDatePicker({
         <div className="relative">
           <select
             value={day}
-            onChange={(e) => setDay(e.target.value)}
+            onChange={(e) => handleDayChange(e.target.value)}
             className="w-full pr-2.5 pl-6 py-2.5 rounded-xl bg-[#101311] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] focus:outline-none focus:border-[#C8A96B] appearance-none cursor-pointer min-h-[44px]"
             aria-label="روز تولد"
           >

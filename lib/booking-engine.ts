@@ -458,16 +458,38 @@ export async function reserveSlotHold(params: {
         customer = await tx.customer.create({
           data: {
             phone: normalizedPhone,
-            name: params.customerName,
+            name: params.customerName.trim(),
             email: params.customerEmail || null,
             birthDate: params.customerBirthDate || null,
           },
         })
-      } else if (params.customerBirthDate && !customer.birthDate) {
-        await tx.customer.update({
-          where: { id: customer.id },
-          data: { birthDate: params.customerBirthDate },
-        })
+      } else {
+        const isPlaceholder =
+          !customer.name ||
+          customer.name.trim() === "" ||
+          customer.name.includes("مشتری گرامی") ||
+          customer.name.includes("کاربر جدید")
+
+        const updateData: Record<string, unknown> = {}
+
+        // Canonical customer directory rule:
+        // If customer record was initialized with a placeholder name, upgrade it to the name entered on booking.
+        // If customer already has an established canonical name, preserve it so nicknames do not overwrite it.
+        if (isPlaceholder && params.customerName?.trim()) {
+          updateData.name = params.customerName.trim()
+        }
+        if (!customer.birthDate && params.customerBirthDate) {
+          updateData.birthDate = params.customerBirthDate
+        }
+        if (!customer.email && params.customerEmail) {
+          updateData.email = params.customerEmail
+        }
+        if (Object.keys(updateData).length > 0) {
+          customer = await tx.customer.update({
+            where: { id: customer.id },
+            data: updateData,
+          })
+        }
       }
 
       // 4. Create the atomic SlotHold
@@ -492,7 +514,7 @@ export async function reserveSlotHold(params: {
           customerName: params.customerName,
           customerPhone: normalizedPhone,
           customerEmail: params.customerEmail || null,
-          customerBirthDate: params.customerBirthDate || null,
+          customerBirthDate: params.customerBirthDate || customer.birthDate || null,
           date: slotUtc,
           endDate: slotEndUtc,
           status: "HELD",
@@ -602,7 +624,7 @@ export async function handlePaymentCallback(params: {
       success: false,
       isIdempotentRepeat: false,
       appointment: payment.appointment,
-      message: "پرداخت لغو گردید و نوبت آزاد شد",
+      message: "پرداخت لغو شد و نوبت قبلی آزاد گردید. در صورت تمایل میتوانید مجدداً اقدام کنید.",
     }
   }
 

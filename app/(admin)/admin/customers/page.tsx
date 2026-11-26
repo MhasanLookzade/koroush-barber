@@ -5,6 +5,7 @@ import Link from "next/link"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { formatToman, toPersianDigits } from "@/lib/jalali"
+import { JalaliBirthDatePicker } from "@/components/booking/JalaliBirthDatePicker"
 import {
   Users,
   Search,
@@ -23,6 +24,9 @@ import {
   Save,
   Check,
   ChevronLeft,
+  User,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react"
 
 interface BookingRecord {
@@ -61,9 +65,13 @@ export default function AdminCustomersPage() {
   const [search, setSearch] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null)
+  const [editingName, setEditingName] = useState("")
+  const [editingBirthDate, setEditingBirthDate] = useState<string | null>(null)
   const [editingNotes, setEditingNotes] = useState("")
   const [editingConsent, setEditingConsent] = useState(true)
   const [saveLoading, setSaveLoading] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   const fetchCustomers = async () => {
@@ -93,13 +101,20 @@ export default function AdminCustomersPage() {
 
   const openCustomerModal = (customer: CustomerItem) => {
     setSelectedCustomer(customer)
+    setEditingName(customer.name || "")
+    setEditingBirthDate(customer.birthDate || null)
     setEditingNotes(customer.notes || "")
     setEditingConsent(customer.smsConsent)
     setSaveSuccess(false)
+    setShowDeleteConfirm(false)
   }
 
-  const handleSaveCustomerNotes = async () => {
+  const handleSaveCustomerProfile = async () => {
     if (!selectedCustomer) return
+    if (!editingName.trim()) {
+      alert("نام مشتری نمی‌تواند خالی باشد")
+      return
+    }
     try {
       setSaveLoading(true)
       const res = await fetch("/api/admin/customers", {
@@ -107,30 +122,75 @@ export default function AdminCustomersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: selectedCustomer.id,
+          name: editingName.trim(),
+          birthDate: editingBirthDate,
           notes: editingNotes,
           smsConsent: editingConsent,
         }),
       })
-      if (!res.ok) throw new Error("خطا در ذخیره یادداشت")
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || "خطا در ذخیره پرونده مشتری")
+      }
 
       setSaveSuccess(true)
       setTimeout(() => setSaveSuccess(false), 3000)
+
+      const updatedName = editingName.trim()
+      const updatedBirthDate = editingBirthDate
 
       // Update local state
       setCustomers((prev) =>
         prev.map((c) =>
           c.id === selectedCustomer.id
-            ? { ...c, notes: editingNotes, smsConsent: editingConsent }
+            ? {
+                ...c,
+                name: updatedName,
+                birthDate: updatedBirthDate,
+                notes: editingNotes,
+                smsConsent: editingConsent,
+              }
             : c
         )
       )
       setSelectedCustomer((prev) =>
-        prev ? { ...prev, notes: editingNotes, smsConsent: editingConsent } : null
+        prev
+          ? {
+              ...prev,
+              name: updatedName,
+              birthDate: updatedBirthDate,
+              notes: editingNotes,
+              smsConsent: editingConsent,
+            }
+          : null
       )
-    } catch {
-      alert("خطا در به‌روزرسانی اطلاعات مشتری")
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "خطا در به‌روزرسانی اطلاعات مشتری")
     } finally {
       setSaveLoading(false)
+    }
+  }
+
+  const handleDeleteCustomer = async () => {
+    if (!selectedCustomer) return
+    try {
+      setDeleteLoading(true)
+      const res = await fetch(`/api/admin/customers?id=${selectedCustomer.id}`, {
+        method: "DELETE",
+      })
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || "خطا در حذف پرونده مشتری")
+      }
+
+      const deletedId = selectedCustomer.id
+      setCustomers((prev) => prev.filter((c) => c.id !== deletedId))
+      setSelectedCustomer(null)
+      setShowDeleteConfirm(false)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "خطا در حذف پرونده مشتری")
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -381,6 +441,45 @@ export default function AdminCustomersPage() {
               </div>
             </div>
 
+            {/* Customer Directory Identity & Jalali Birth Date */}
+            <div className="p-4 rounded-2xl bg-[#101311] border border-[#242A27] space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-[#1E2421]">
+                <User className="w-4 h-4 text-[#C8A96B]" />
+                <h4 className="text-xs font-bold text-[#F7F4EE]">
+                  مشخصات هویتی و ثبت تاریخ تولد در دایرکتوری
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Editable Canonical Name */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#C5BDB2] block">
+                    نام و نام خانوادگی در دایرکتوری:
+                  </label>
+                  <input
+                    type="text"
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    placeholder="نام کامل مشتری..."
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#171B19] border border-[#2B332F] text-xs sm:text-sm text-[#F7F4EE] placeholder-[#555C57] focus:outline-none focus:border-[#C8A96B] min-h-[44px]"
+                  />
+                  <p className="text-[10px] text-[#8C8477]">
+                    این نام به عنوان نام اصلی در دایرکتوری ثبت شده و با رزروهای بعدی بازنویسی نمی‌شود.
+                  </p>
+                </div>
+
+                {/* Jalali Birth Date Picker */}
+                <div>
+                  <JalaliBirthDatePicker
+                    value={editingBirthDate}
+                    onChange={setEditingBirthDate}
+                    label="تاریخ تولد مشتری (هجری شمسی):"
+                    hint="(جهت تبریک خودکار و تخفیف)"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Services Previously Booked */}
             {selectedCustomer.servicesUsed.length > 0 && (
               <div className="space-y-1.5">
@@ -434,11 +533,11 @@ export default function AdminCustomersPage() {
                 <Button
                   size="sm"
                   disabled={saveLoading}
-                  onClick={handleSaveCustomerNotes}
+                  onClick={handleSaveCustomerProfile}
                   className="bg-[#C8A96B] hover:bg-[#E4C88E] text-[#0D0F0E] font-bold text-xs h-9 px-4 cursor-pointer"
                 >
                   <Save className="w-3.5 h-3.5 ml-1.5" />
-                  <span>{saveLoading ? "در حال ذخیره..." : "ذخیره یادداشت"}</span>
+                  <span>{saveLoading ? "در حال ذخیره..." : "ذخیره تغییرات پرونده"}</span>
                 </Button>
               </div>
             </div>
@@ -488,13 +587,86 @@ export default function AdminCustomersPage() {
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-4 border-t border-[#242A27] flex justify-end gap-3">
+            <div className="pt-4 border-t border-[#242A27] flex items-center justify-between">
               <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="border-red-900/40 text-red-400 hover:bg-red-950/40 hover:text-red-300 text-xs h-9 px-3 gap-1.5 cursor-pointer min-h-[40px]"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>حذف مشتری</span>
+              </Button>
+
+              <Button
+                type="button"
                 variant="outline"
                 onClick={() => setSelectedCustomer(null)}
-                className="border-[#2D332F] text-xs h-9 cursor-pointer"
+                className="border-[#2D332F] text-xs h-9 cursor-pointer min-h-[40px]"
               >
                 بستن پنجره
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. DEDICATED DELETE CONFIRMATION POPUP MODAL */}
+      {showDeleteConfirm && selectedCustomer && (
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200"
+          dir="rtl"
+        >
+          <div className="relative w-full max-w-md bg-[#161A18] border border-red-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl text-right space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header: Icon + Title */}
+            <div className="flex items-start gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-red-950/60 border border-red-500/30 flex items-center justify-center shrink-0 text-red-400">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base sm:text-lg font-bold font-heading text-[#F7F4EE]">
+                  آیا از حذف کامل این مشتری از دایرکتوری اطمینان دارید؟
+                </h3>
+                <p className="text-xs text-[#A89E90]">
+                  پرونده: <strong className="text-[#F7F4EE]">{selectedCustomer.name}</strong> (<span className="font-mono" dir="ltr">{selectedCustomer.phone}</span>)
+                </p>
+              </div>
+            </div>
+
+            {/* Warning Description */}
+            <div className="p-3.5 rounded-2xl bg-[#0F1210] border border-[#262E2A] text-xs text-[#C5BDB2] leading-relaxed space-y-1.5">
+              <p className="text-red-300 font-semibold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block"></span>
+                این عمل غیرقابل بازگشت است.
+              </p>
+              <p className="text-[11px] text-[#8C8477]">
+                سوابق مالی، مبالغ پرداختی و نوبت‌های گذشته برای حفظ صحت حسابداری و گزارش‌های سالن در سیستم باقی می‌مانند، اما پروفایل این مشتری به طور کامل از دایرکتوری و پنل حذف خواهد شد.
+              </p>
+            </div>
+
+            {/* Action Buttons: Responsive Grid / Row */}
+            <div className="grid grid-cols-2 gap-3 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={deleteLoading}
+                onClick={() => setShowDeleteConfirm(false)}
+                className="w-full border-[#2D332F] hover:bg-[#202723] text-xs h-11 rounded-xl cursor-pointer font-medium min-h-[44px]"
+              >
+                انصراف
+              </Button>
+
+              <Button
+                type="button"
+                disabled={deleteLoading}
+                onClick={handleDeleteCustomer}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs h-11 rounded-xl cursor-pointer gap-1.5 shadow-lg shadow-red-950/50 min-h-[44px]"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{deleteLoading ? "در حال حذف..." : "بله، حذف مشتری"}</span>
               </Button>
             </div>
           </div>

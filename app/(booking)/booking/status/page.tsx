@@ -461,12 +461,12 @@ function BookingStatusContent() {
                       type="button"
                       onClick={handleSendOtp}
                       disabled={loading || otpTimer > 0 || !phone.trim()}
-                      className="bg-[#1C221F] hover:bg-[#28302C] text-[#E4C88E] border border-[#C8A96B]/30 font-bold px-6 py-3.5 rounded-2xl text-xs sm:text-sm min-h-[48px] cursor-pointer"
+                      className="bg-gradient-to-r from-[#E4C88E] via-[#C8A96B] to-[#B58B59] hover:brightness-110 text-[#0D0F0E] font-bold px-5 sm:px-6 py-3.5 rounded-2xl text-xs sm:text-sm min-h-[48px] shadow-md cursor-pointer active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                       {otpTimer > 0
-                        ? `${toPersianDigits(otpTimer)} ثانیه تا ارسال مجدد`
+                        ? `ارسال مجدد کد تا ${toPersianDigits(otpTimer)} ثانیه دیگر`
                         : isOtpSent
-                        ? "ارسال مجدد پیامک"
+                        ? "ارسال مجدد کد"
                         : "دریافت کد تایید"}
                     </Button>
                   </div>
@@ -557,6 +557,29 @@ function BookingStatusContent() {
                 <span>بازگشت به پیگیری نوبت</span>
               </button>
             </div>
+
+            {/* Authenticated Customer Banner */}
+            {appointments.length > 0 && appointments[0]?.customerName && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#171D19] border border-[#C8A96B]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg text-right">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-[#C8A96B]/20 text-[#E4C88E] flex items-center justify-center shrink-0">
+                    <User className="w-5 h-5 text-[#E4C88E]" />
+                  </div>
+                  <div>
+                    <span className="text-[11px] text-[#A89E90] block">نام کامل مراجع محترم:</span>
+                    <h3 className="text-base sm:text-xl font-black font-heading text-[#F7F4EE] leading-tight">
+                      {appointments[0].customerName}
+                    </h3>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>احراز هویت شده</span>
+                  </span>
+                </div>
+              </div>
+            )}
 
             {appointments.length === 0 ? (
               <Card className="bg-[#141715] border border-[#242A27] rounded-3xl p-8 sm:p-10 text-center space-y-4">
@@ -660,7 +683,7 @@ function BookingStatusContent() {
                           <User className="w-3.5 h-3.5 text-[#C8A96B]" />
                           نام مراجعه‌کننده:
                         </span>
-                        <strong className="text-[#F7F4EE] text-sm block truncate">
+                        <strong className="text-[#F7F4EE] text-sm font-bold block leading-relaxed">
                           {a.customerName}
                         </strong>
                       </div>

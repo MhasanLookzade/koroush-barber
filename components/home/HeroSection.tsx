@@ -1,6 +1,6 @@
 "use client"
 
-import { Scissors, Clock, ShieldCheck, Sparkles, Star, Award, CheckCircle2 } from "lucide-react"
+import { Scissors, Clock, ShieldCheck, Sparkles, Award } from "lucide-react"
 
 export function HeroSection() {
   const scrollTo = (id: string) => {
@@ -67,16 +67,6 @@ export function HeroSection() {
                 <span>رزرو آنلاین نوبت</span>
                 <Scissors className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Social Trust Snippet */}
-            <div className="pt-2 flex items-center gap-4 text-xs sm:text-sm text-[#A89E90]">
-              <div className="flex items-center gap-1 text-[#E4C88E]">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-[#E4C88E]" />
-                ))}
-              </div>
-              <span><strong className="font-bold text-[#F7F4EE] persian-nums">۴.۹</strong> از ۵ (بیش از <span className="persian-nums">۴۰۰</span> نوبت رضایت‌بخش ثبت شده)</span>
             </div>
           </div>
 

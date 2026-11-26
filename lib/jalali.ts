@@ -492,4 +492,18 @@ export function getJalaliWeekDays(baseDateStr?: string, weekOffset: number = 0):
   }
 }
 
-
+/**
+ * Format an ISO date string (YYYY-MM-DD) into Jalali weekday, day number, and month name.
+ * Example: "2026-11-25" -> "چهارشنبه ۴ آذر"
+ */
+export function formatJalaliDayString(dateStr: string): string {
+  if (!dateStr || !dateStr.includes("-")) return ""
+  const [gy, gm, gd] = dateStr.split("-").map(Number)
+  if (isNaN(gy) || isNaN(gm) || isNaN(gd)) return dateStr
+  const [jy, jm, jd] = gregorianToJalali(gy, gm, gd)
+  // Use UTC noon to calculate weekday immutably regardless of local timezone
+  const d = new Date(Date.UTC(gy, gm - 1, gd, 12, 0, 0))
+  const dayName = PERSIAN_WEEKDAYS[d.getUTCDay()]
+  const monthName = PERSIAN_MONTHS[jm - 1]
+  return `${dayName} ${toPersianDigits(jd)} ${monthName}`
+}

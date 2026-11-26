@@ -25,7 +25,7 @@ import {
   X,
   Edit3,
 } from "lucide-react"
-import { formatToman, toPersianDigits, getJalaliDate, getTehranDateString } from "@/lib/jalali"
+import { formatToman, toPersianDigits, getJalaliDate, getTehranDateString, formatJalaliDayString } from "@/lib/jalali"
 import { normalizeIranianPhone, isValidIranianPhone } from "@/lib/providers/sms"
 import { HOMEPAGE_SERVICES, ServiceItem } from "./ServicesSection"
 import { JalaliBirthDatePicker } from "@/components/booking/JalaliBirthDatePicker"
@@ -45,7 +45,9 @@ interface BookingStudioProps {
 export function BookingStudio({ initialServiceId }: BookingStudioProps) {
   const searchParams = useSearchParams()
   const bookingContainerRef = useRef<HTMLDivElement>(null)
+  const stepContainerRef = useRef<HTMLDivElement>(null)
   const prevStepRef = useRef<number>(1)
+  const [cancellationNotice, setCancellationNotice] = useState<string | null>(null)
 
   // 6 Sequential Steps:
   // 1: Service Selection
@@ -158,12 +160,59 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
     loadWeekAvailability()
   }, [])
 
-  // Check URL query for direct service pre-selection
+  // Check URL query for direct service pre-selection or payment cancellation restoration
   useEffect(() => {
     const sId = searchParams.get("service")
     if (sId) {
       const match = services.find((s) => s.id === sId)
       if (match) setSelectedService(match)
+    }
+
+    // Payment cancellation restoration
+    let hashParams: URLSearchParams | null = null
+    if (typeof window !== "undefined" && window.location.hash.includes("?")) {
+      const qIdx = window.location.hash.indexOf("?")
+      hashParams = new URLSearchParams(window.location.hash.slice(qIdx + 1))
+    }
+
+    const getParam = (key: string) => searchParams.get(key) || hashParams?.get(key) || null
+
+    const isCancelled = getParam("cancelled") === "true"
+    const cancelErr = getParam("error")
+    const queryServiceId = getParam("serviceId")
+    const queryDateStr = getParam("dateStr")
+    const queryTimeStr = getParam("timeStr")
+    const queryName = getParam("name")
+    const queryPhone = getParam("phone")
+
+    let draft: any = null
+    try {
+      const stored = typeof window !== "undefined" ? sessionStorage.getItem("koroush_booking_draft") : null
+      if (stored) draft = JSON.parse(stored)
+    } catch {
+      // ignore
+    }
+
+    if (isCancelled || cancelErr?.includes("لغو")) {
+      const targetServiceId = queryServiceId || draft?.serviceId
+      if (targetServiceId) {
+        const found = services.find((s) => s.id === targetServiceId) || HOMEPAGE_SERVICES.find((s) => s.id === targetServiceId)
+        if (found) setSelectedService(found)
+      }
+      const targetDate = queryDateStr || draft?.dateStr
+      if (targetDate) setSelectedDateStr(targetDate)
+      const targetTime = queryTimeStr || draft?.timeStr
+      if (targetTime) setSelectedTime(targetTime)
+      const targetName = queryName || draft?.customerName
+      if (targetName) setCustomerName(targetName)
+      const targetPhone = queryPhone || draft?.customerPhone
+      if (targetPhone) setCustomerPhone(targetPhone)
+      if (draft?.customerEmail) setCustomerEmail(draft.customerEmail)
+      if (draft?.customerBirthDate) setCustomerBirthDate(draft.customerBirthDate)
+
+      setCurrentStep(5)
+      setCancellationNotice("پرداخت لغو شد و نوبت قبلی آزاد گردید. در صورت تمایل میتوانید مجدداً اقدام کنید.")
+      setHoldDetails(null)
     }
   }, [searchParams, services])
 
@@ -185,18 +234,30 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
     loadBackendServices()
   }, [])
 
-  // Smooth scroll repositioning ONLY on actual step transition (never on initial mount)
+  // Smooth scroll to the active step on step transition (never on initial mount)
   useEffect(() => {
     if (prevStepRef.current !== currentStep) {
       prevStepRef.current = currentStep
 
-      const reducedMotion = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      if (bookingContainerRef.current) {
-        bookingContainerRef.current.scrollIntoView({
-          behavior: reducedMotion ? "auto" : "smooth",
-          block: "start",
-        })
-      }
+      // 300ms delay ensures previous step exit animation (250ms) finishes and new step mounts
+      const timer = setTimeout(() => {
+        const targetEl = stepContainerRef.current || bookingContainerRef.current
+        if (targetEl) {
+          let absTop = 0
+          let curr: HTMLElement | null = targetEl
+          while (curr) {
+            absTop += curr.offsetTop
+            curr = curr.offsetParent as HTMLElement | null
+          }
+          const targetY = Math.max(0, absTop - 84)
+          window.scrollTo({
+            top: targetY,
+            behavior: "smooth",
+          })
+        }
+      }, 300)
+
+      return () => clearTimeout(timer)
     }
   }, [currentStep])
 
@@ -325,6 +386,27 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         throw new Error(payData.error || "خطا در اتصال به درگاه پرداخت بانکی")
       }
 
+      // Save draft in sessionStorage before navigating away to the gateway
+      try {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(
+            "koroush_booking_draft",
+            JSON.stringify({
+              serviceId: selectedService.id,
+              dateStr: selectedDateStr,
+              timeStr: selectedTime,
+              customerName: customerName.trim(),
+              customerPhone: normalizedPhone,
+              customerEmail: customerEmail.trim() || undefined,
+              customerBirthDate: customerBirthDate || undefined,
+              appointmentId: holdData.appointmentId,
+            })
+          )
+        }
+      } catch {
+        // Storage full or unavailable
+      }
+
       // 3. Redirect customer to payment gateway
       window.location.href = payData.redirectUrl
     } catch (err: unknown) {
@@ -336,6 +418,14 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
 
   // Reset booking process
   const handleReset = () => {
+    try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("koroush_booking_draft")
+      }
+    } catch {
+      // ignore
+    }
+    setCancellationNotice(null)
     setCurrentStep(1)
     setSelectedTime(null)
     setHoldDetails(null)
@@ -458,7 +548,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
         )}
 
         {/* Dynamic Step Content Card */}
-        <div className="bg-[#141715] rounded-3xl p-5 sm:p-8 lg:p-10 border border-[#262D29] shadow-2xl min-h-[480px] flex flex-col justify-between">
+        <div ref={stepContainerRef} className="bg-[#141715] rounded-3xl p-4 sm:p-7 lg:p-9 border border-[#262D29] shadow-2xl min-h-[480px] flex flex-col justify-between scroll-mt-24 sm:scroll-mt-28">
           <AnimatePresence mode="wait">
             
             {/* STEP 1: SERVICE SELECTION */}
@@ -492,7 +582,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
                   {services.map((srv) => {
                     const isSelected = selectedService.id === srv.id
                     const balanceDue = Math.max(0, srv.price - srv.depositPrice)
@@ -500,49 +590,45 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                       <div
                         key={srv.id}
                         onClick={() => setSelectedService(srv)}
-                        className={`p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
+                        className={`p-2.5 sm:p-3 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
                           isSelected
-                            ? "bg-[#1C221F] border-[#C8A96B] shadow-[0_0_20px_rgba(200,169,107,0.18)] scale-[1.01]"
+                            ? "bg-[#1C221F] border-[#C8A96B] shadow-[0_0_15px_rgba(200,169,107,0.2)] ring-1 ring-[#C8A96B]/40 scale-[1.01]"
                             : "bg-[#101311] border-[#222825] hover:border-[#38413C]"
                         }`}
                         role="button"
                         tabIndex={0}
                         aria-pressed={isSelected}
                       >
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[11px] px-2.5 py-0.5 rounded-md bg-[#232A26] text-[#A89E90] font-medium">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[#232A26] text-[#A89E90] font-medium">
                                 {srv.category}
                               </span>
-                              <span className="text-[11px] px-2 py-0.5 rounded-md bg-[#161B18] text-[#8C8477] border border-[#27302B]">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-[#161B18] text-[#8C8477] border border-[#27302B]">
                                 ۶۰ دقیقه
                               </span>
                             </div>
                             {isSelected && (
-                              <span className="flex items-center gap-1 text-xs font-bold text-[#E4C88E]">
-                                <CheckCircle2 className="w-4 h-4 text-[#E4C88E]" />
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-[#E4C88E]">
+                                <CheckCircle2 className="w-3 h-3 text-[#E4C88E]" />
                                 <span>انتخاب شده</span>
                               </span>
                             )}
                           </div>
-                          <h4 className="text-base sm:text-lg font-bold text-[#F7F4EE]">{srv.name}</h4>
-                          <p className="text-xs text-[#8C8477] line-clamp-2 leading-relaxed">{srv.description}</p>
+                          <h4 className="text-sm font-bold text-[#F7F4EE] leading-tight">{srv.name}</h4>
+                          <p className="text-[11px] text-[#8C8477] line-clamp-1 leading-tight">{srv.description}</p>
                         </div>
 
-                        {/* Standardized Pricing Hierarchy */}
-                        <div className="pt-3.5 mt-3.5 border-t border-[#1F2522] space-y-1.5 text-xs">
-                          <div className="flex items-center justify-between text-[#C5BDB2]">
-                            <span>قیمت کامل:</span>
-                            <strong className="text-sm font-bold text-[#F7F4EE]">{formatToman(srv.price)}</strong>
+                        {/* Standardized Pricing Hierarchy - Ultra Compact Strip */}
+                        <div className="pt-2 mt-2 border-t border-[#1F2522] flex items-center justify-between text-xs">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-[10px] text-[#8C8477]">کل:</span>
+                            <strong className="text-xs font-bold text-[#F7F4EE]">{formatToman(srv.price)}</strong>
                           </div>
-                          <div className="flex items-center justify-between text-[#A89E90]">
-                            <span>بیعانه (۲۰٪):</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-[10px] text-[#C8A96B]">بیعانه:</span>
                             <strong className="text-xs font-bold text-[#E4C88E]">{formatToman(srv.depositPrice)}</strong>
-                          </div>
-                          <div className="flex items-center justify-between text-[11px] text-[#787063]">
-                            <span>مانده پرداخت در سالن:</span>
-                            <span className="text-xs text-[#A89E90]">{formatToman(balanceDue)}</span>
                           </div>
                         </div>
                       </div>
@@ -550,11 +636,11 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   })}
                 </div>
 
-                <div className="pt-6 border-t border-[#222825] flex justify-end">
+                <div className="pt-4 sm:pt-6 border-t border-[#222825] flex justify-end">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(2)}
-                    className="w-full sm:w-auto px-8 py-4 rounded-xl text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[48px]"
+                    className="w-full sm:w-auto px-8 py-3.5 sm:py-4 rounded-xl text-sm sm:text-base font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] hover:brightness-110 shadow-lg flex items-center justify-center gap-2 cursor-pointer min-h-[48px] active:scale-95 transition-all"
                   >
                     <span>ادامه به انتخاب روز</span>
                     <ArrowLeft className="w-5 h-5" />
@@ -965,6 +1051,17 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   </p>
                 </div>
 
+                {/* Cancellation Warning Notice */}
+                {cancellationNotice && (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 text-amber-300 flex items-start gap-3 animate-in fade-in duration-200">
+                    <AlertCircle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs sm:text-sm text-right">
+                      <strong className="font-bold text-amber-200 block text-sm sm:text-base">وضعیت پرداخت: نوبت آزاد شد</strong>
+                      <p className="leading-relaxed">{cancellationNotice}</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* REQUIRED PHONE CONFIRMATION BLOCK */}
                 <div className="p-5 sm:p-6 rounded-2xl bg-[#171D19] border-2 border-[#C8A96B]/50 shadow-lg space-y-4">
                   <div className="flex items-center gap-3">
@@ -1014,7 +1111,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                   <div className="grid grid-cols-2 gap-3 text-xs sm:text-sm">
                     <div className="p-3 rounded-xl bg-[#161A18] border border-[#222724]">
                       <span className="text-[#8C8477] block text-[11px]">روز نوبت:</span>
-                      <strong className="text-[#F7F4EE]">{selectedDateStr}</strong>
+                      <strong className="text-[#F7F4EE]">{formatJalaliDayString(selectedDateStr)}</strong>
                     </div>
                     <div className="p-3 rounded-xl bg-[#161A18] border border-[#222724]">
                       <span className="text-[#8C8477] block text-[11px]">ساعت نوبت:</span>
@@ -1136,7 +1233,7 @@ export function BookingStudio({ initialServiceId }: BookingStudioProps) {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#8C8477]">تاریخ حضور:</span>
-                      <strong className="text-[#F7F4EE]">{confirmedBooking?.dateStr || selectedDateStr}</strong>
+                      <strong className="text-[#F7F4EE]">{formatJalaliDayString(confirmedBooking?.dateStr || selectedDateStr)}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#8C8477]">ساعت حضور:</span>

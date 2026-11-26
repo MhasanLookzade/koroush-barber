@@ -7,7 +7,7 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit"
 export async function POST(request: NextRequest) {
   try {
     const ip = getClientIp(request)
-    const ipRate = checkRateLimit(`otp_ip_${ip}`, 5, 10 * 60 * 1000)
+    const ipRate = checkRateLimit(`otp_ip_${ip}`, 10, 10 * 60 * 1000)
     if (!ipRate.allowed) {
       return NextResponse.json(
         { error: "تعداد درخواست‌های کد تایید از آدرس شما بیش از حد مجاز است. لطفاً ۱۰ دقیقه دیگر تلاش نمایید." },
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     const normalizedPhone = normalizeIranianPhone(phone)
 
     // Burst rate limiting per phone number: max 3 requests per 15 minutes
-    const phoneBurst = checkRateLimit(`otp_phone_burst_${normalizedPhone}`, 3, 15 * 60 * 1000)
+    const phoneBurst = checkRateLimit(`otp_phone_burst_${normalizedPhone}`, 5, 15 * 60 * 1000)
     if (!phoneBurst.allowed) {
       return NextResponse.json(
         { error: "تعداد درخواست‌های کد تایید برای این شماره بیش از حد مجاز است. لطفاً ۱۵ دقیقه دیگر تلاش نمایید." },
@@ -52,18 +52,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting: check recent OTP requests in last 2 minutes (resend cooldown)
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000)
+    const oneMinuteAgo = new Date(Date.now() - 60 * 1000)
     const recentChallenge = await prisma.otpChallenge.findFirst({
       where: {
         phone: normalizedPhone,
-        createdAt: { gt: twoMinutesAgo },
+        createdAt: { gt: oneMinuteAgo },
       },
       orderBy: { createdAt: "desc" },
     })
 
     if (recentChallenge && !recentChallenge.verified) {
       return NextResponse.json(
-        { error: "لطفاً تا انقضای کد قبلی (۲ دقیقه) شکیبا باشید" },
+        { error: "لطفاً تا امکان ارسال مجدد کد (۶۰ ثانیه) شکیبا باشید" },
         { status: 429 }
       )
     }

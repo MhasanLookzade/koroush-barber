@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { handlePaymentCallback } from "@/lib/booking-engine"
+import { getTehranDateString, getTehranTimeString } from "@/lib/jalali"
 
 export const dynamic = "force-dynamic"
 
@@ -29,7 +30,7 @@ async function processCallback(request: NextRequest) {
     }
 
     if (!authority) {
-      return NextResponse.redirect(new URL("/booking?error=شناسه_تراکنش_نامعتبر_است", request.url))
+      return NextResponse.redirect(new URL("/?error=شناسه_تراکنش_نامعتبر_است#booking", request.url))
     }
 
     const result = await handlePaymentCallback({
@@ -43,24 +44,45 @@ async function processCallback(request: NextRequest) {
       return NextResponse.json(result)
     }
 
-    const appointment = result.appointment as { trackingCode: string }
+    const app = result.appointment as {
+      id?: string
+      serviceId?: string
+      date?: Date | string
+      customerName?: string
+      customerPhone?: string
+      trackingCode?: string
+    } | null
+
     if (result.success) {
       return NextResponse.redirect(
         new URL(
-          `/booking/success?trackingCode=${appointment?.trackingCode || ""}&authority=${authority}`,
+          `/booking/success?trackingCode=${app?.trackingCode || ""}&authority=${authority}`,
           request.url
         )
       )
     } else {
+      const redirectParams = new URLSearchParams()
+      redirectParams.set("cancelled", "true")
+      redirectParams.set("error", result.message)
+      if (app) {
+        if (app.serviceId) redirectParams.set("serviceId", app.serviceId)
+        if (app.date) {
+          const d = typeof app.date === "string" ? new Date(app.date) : app.date
+          redirectParams.set("dateStr", getTehranDateString(d))
+          redirectParams.set("timeStr", getTehranTimeString(d))
+        }
+        if (app.customerPhone) redirectParams.set("phone", app.customerPhone)
+        if (app.customerName) redirectParams.set("name", app.customerName)
+      }
       return NextResponse.redirect(
-        new URL(`/booking?error=${encodeURIComponent(result.message)}`, request.url)
+        new URL(`/?${redirectParams.toString()}#booking`, request.url)
       )
     }
   } catch (error: unknown) {
     console.error("Payment callback error:", error)
     const message = error instanceof Error ? error.message : "خطای پردازش بازگشت از درگاه"
     return NextResponse.redirect(
-      new URL(`/booking?error=${encodeURIComponent(message)}`, request.url)
+      new URL(`/#booking?error=${encodeURIComponent(message)}`, request.url)
     )
   }
 }

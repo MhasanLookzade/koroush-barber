@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -16,8 +17,13 @@ import {
 export function Header({ id }: { id?: string }) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const isHome = pathname === "/"
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -166,6 +172,7 @@ export function Header({ id }: { id?: string }) {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-[#141715] text-[#F7F4EE] border border-[#242A27] hover:bg-[#1E2320] transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C8A96B]/50"
               aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-navigation-drawer"
               aria-label={mobileMenuOpen ? "بستن منوی ناوبری" : "باز کردن منوی ناوبری"}
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -174,57 +181,72 @@ export function Header({ id }: { id?: string }) {
         </div>
       </div>
 
-      {/* 4. Mobile Menu Drawer Overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-x-0 top-[64px] sm:top-[72px] bottom-0 bg-[#0D0F0E]/98 backdrop-blur-2xl border-t border-[#242A27] p-6 shadow-2xl flex flex-col justify-between overflow-y-auto animate-in fade-in duration-200"
-          dir="rtl"
-        >
-          <nav className="flex flex-col gap-2" aria-label="منوی موبایل">
-            {navLinks.map((link) => {
-              const fullHref = isHome ? link.href : (link.href.startsWith("#") ? `/${link.href}` : link.href)
-              return (
-                <Link
-                  key={link.label}
-                  href={fullHref}
-                  onClick={(e) => handleNavClick(e, link.href)}
-                  className="px-4 py-3.5 rounded-2xl text-sm font-semibold text-[#E6E0D6] hover:bg-[#181D1A] hover:text-[#C8A96B] transition-colors flex items-center justify-between border border-transparent hover:border-[#262C28]"
-                >
-                  <span>{link.label}</span>
-                  <ArrowUpLeft className="w-4 h-4 text-[#7E776C]" />
-                </Link>
-              )
-            })}
-          </nav>
+      {/* 4. Mobile Menu Drawer & Backdrop Rendered via React Portal directly into body */}
+      {mounted && mobileMenuOpen && createPortal(
+        <>
+          {/* Backdrop overlay for outside-click closing */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
 
-          <div className="pt-6 border-t border-[#222825] flex flex-col gap-3 pb-6">
-            <Link
-              href="/booking/status"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-[#E4C88E] bg-[#161A18] border border-[#C8A96B]/30 hover:border-[#C8A96B] min-h-[44px]"
-            >
-              <CalendarCheck className="w-4 h-4 text-[#C8A96B]" />
-              <span>پیگیری نوبت من</span>
-            </Link>
+          {/* Drawer detached from header container to prevent backdrop-filter clipping */}
+          <div
+            id="mobile-navigation-drawer"
+            className="lg:hidden fixed inset-x-0 top-[64px] sm:top-[72px] bottom-0 z-50 bg-[#0D0F0E]/98 backdrop-blur-2xl border-t border-[#242A27] p-6 shadow-2xl flex flex-col justify-between overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+            dir="rtl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="منوی ناوبری موبایل"
+          >
+            <nav className="flex flex-col gap-2" aria-label="منوی موبایل">
+              {navLinks.map((link) => {
+                const fullHref = isHome ? link.href : (link.href.startsWith("#") ? `/${link.href}` : link.href)
+                return (
+                  <Link
+                    key={link.label}
+                    href={fullHref}
+                    onClick={(e) => handleNavClick(e, link.href)}
+                    className="px-4 py-3.5 rounded-2xl text-sm font-semibold text-[#E6E0D6] hover:bg-[#181D1A] hover:text-[#C8A96B] transition-colors flex items-center justify-between border border-transparent hover:border-[#262C28] min-h-[48px]"
+                  >
+                    <span>{link.label}</span>
+                    <ArrowUpLeft className="w-4 h-4 text-[#7E776C]" />
+                  </Link>
+                )
+              })}
+            </nav>
 
-            <Link
-              href={isHome ? "#booking" : "/#booking"}
-              onClick={(e) => handleNavClick(e, "#booking")}
-              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] shadow-lg min-h-[48px]"
-            >
-              <span>رزرو آنلاین نوبت (انتخاب ساعت)</span>
-              <Scissors className="w-4 h-4" />
-            </Link>
+            <div className="pt-6 border-t border-[#222825] flex flex-col gap-3 pb-6">
+              <Link
+                href="/booking/status"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl text-sm font-bold text-[#E4C88E] bg-[#161A18] border border-[#C8A96B]/30 hover:border-[#C8A96B] min-h-[48px]"
+              >
+                <CalendarCheck className="w-4 h-4 text-[#C8A96B]" />
+                <span>پیگیری نوبت من</span>
+              </Link>
 
-            <div className="pt-2 text-center text-xs text-[#7E776C] flex items-center justify-center gap-2">
-              <Phone className="w-3.5 h-3.5 text-[#C8A96B]" />
-              <span>پذیرش و هماهنگی تلفنی: </span>
-              <a href="tel:02122446688" className="text-[#A8A39A] hover:text-[#E4C88E] font-mono dir-ltr" dir="ltr">
-                ۰۲۱-۲۲۴۴۶۶۸۸
-              </a>
+              <Link
+                href={isHome ? "#booking" : "/#booking"}
+                onClick={(e) => handleNavClick(e, "#booking")}
+                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold text-[#0D0F0E] bg-gradient-to-r from-[#E4C88E] to-[#C8A96B] shadow-lg min-h-[48px]"
+              >
+                <span>رزرو آنلاین نوبت (انتخاب ساعت)</span>
+                <Scissors className="w-4 h-4" />
+              </Link>
+
+              <div className="pt-2 text-center text-xs text-[#7E776C] flex items-center justify-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-[#C8A96B]" />
+                <span>پذیرش و هماهنگی تلفنی: </span>
+                <a href="tel:02122446688" className="text-[#A8A39A] hover:text-[#E4C88E] font-mono dir-ltr" dir="ltr">
+                  ۰۲۱-۲۲۴۴۶۶۸۸
+                </a>
+              </div>
             </div>
           </div>
-        </div>
+        </>,
+        document.body
       )}
     </header>
   )
